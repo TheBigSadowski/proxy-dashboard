@@ -66,6 +66,48 @@ var server = http.createServer(function(req, res) {
 			.value();
 		res.writeHead(200, { 'content-type': 'text/javascript' });
 		res.end(JSON.stringify(response));
+	} else if (req.url == '/hours') {
+		var response = _.chain(data)
+			.map(function(val, key) {
+				return [
+					key,
+					_.reduce(val, function(memo, v) { return memo + v.success; }, 0),
+					_.reduce(val, function(memo, v) { return memo + v.error; }, 0)
+				];
+			})
+			.groupBy(function(d) { return d[0].substring(0, 13); })
+			.map(function(v, y) { 
+				return [
+					y,
+					_.reduce(v, function(memo, val) { return memo + val[1]; }, 0),
+					_.reduce(v, function(memo, val) { return memo + val[2]; }, 0)
+				];
+			})
+			.sortBy(function(val) { return val[0]; })
+			.value();
+		res.writeHead(200, { 'content-type': 'text/javascript' });
+		res.end(JSON.stringify(response));
+	} else if (req.url == '/days') {
+		var response = _.chain(data)
+			.map(function(val, key) {
+				return [
+					key,
+					_.reduce(val, function(memo, v) { return memo + v.success; }, 0),
+					_.reduce(val, function(memo, v) { return memo + v.error; }, 0)
+				];
+			})
+			.groupBy(function(d) { return d[0].substring(0, 10); })
+			.map(function(v, y) { 
+				return [
+					y,
+					_.reduce(v, function(memo, val) { return memo + val[1]; }, 0),
+					_.reduce(v, function(memo, val) { return memo + val[2]; }, 0)
+				];
+			})
+			.sortBy(function(val) { return val[0]; })
+			.value();
+		res.writeHead(200, { 'content-type': 'text/javascript' });
+		res.end(JSON.stringify(response));
 	}
 });
 
