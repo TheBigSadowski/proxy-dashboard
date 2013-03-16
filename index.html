@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+  <head>
+	<style type="text/css">
+	body { background: #000; color: #ddd; }
+	</style>
+	<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+	<script type="text/javascript" src="http://underscorejs.org/underscore-min.js"></script>
+	<script type="text/javascript">
+		google.load("visualization", "1", {packages:["corechart"]});
+		google.setOnLoadCallback(function() {
+			$.get('/minutes', function(data) {
+				var chartData = google.visualization.arrayToDataTable(JSON.parse(data));
+				var options = {
+					title: 'Requests by Minute (past 24 hours)',
+					titleTextStyle: { color: '#555' },
+					isStacked: true,
+					colors: ['red', 'blue'],
+					backgroundColor: '#000',
+					hAxis: { textPosition: 'none' }
+				};
+				var chart = new google.visualization.AreaChart(document.getElementById('chart_minutes'));
+				chart.draw(chartData, options);
+			});
+
+			$.get('/hours', function(data) {
+				var chartData = google.visualization.arrayToDataTable(JSON.parse(data));
+				var options = {
+					title: 'Requests by Hour (past 30 days)',
+					titleTextStyle: { color: '#555' },
+					isStacked: true,
+					colors: ['red', 'blue'],
+					backgroundColor: '#000',
+					hAxis: { textPosition: 'none' }
+				};
+				var chart = new google.visualization.AreaChart(document.getElementById('chart_hour'));
+				chart.draw(chartData, options);
+			});
+
+			$.get('/days', function(data) {
+				var chartData = google.visualization.arrayToDataTable(JSON.parse(data));
+				var options = {
+					title: 'Requests by Day (all time)',
+					titleTextStyle: { color: '#555' },
+					isStacked: true,
+					colors: ['red', 'blue'],
+					backgroundColor: '#000',
+					hAxis: { textPosition: 'none' }
+				};
+				var chart = new google.visualization.AreaChart(document.getElementById('chart_days'));
+				chart.draw(chartData, options);
+			});
+		});
+	</script>
+  </head>
+  <body>
+	<div id="chart_days" style="height: 500px;"></div>
+	<div id="chart_hours" style="height: 500px;"></div>
+	<div id="chart_minutes" style="height: 500px;"></div>
+  </body>
+</html>
+
+

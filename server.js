@@ -4,9 +4,16 @@ var azure = require('azure');
 var _ = require('underscore');
 var fs = require('fs');
 
-var storage = JSON.parse(fs.readFileSync('./accounts.json'));
+var port = process.env.PORT || 8888;
 
-//var tableService = azure.createTableService();
+var storage = [];
+for (var i = 0; process.env['AZURE_STORAGE_ACCOUNT_' + i]; i++) {
+	storage.push({
+		account: process.env['AZURE_STORAGE_ACCOUNT_' + i],
+		key: process.env['AZURE_STORAGE_ACCESS_KEY_' + i],
+		count: 0
+	});
+}
 
 var data = {};
 
@@ -18,8 +25,7 @@ _(storage).each(function(account) {
 			var time = data[entity.PartitionKey] || (data[entity.PartitionKey] = {});
 			time[account.account + '.' + entity.RowKey] = { error: entity.Error, success: entity.Success };
 		});
-		console.log(results.length + ' results added from ' + account.account);
-		console.log('next: ' + raw.nextPartitionKey + ' - ' + raw.nextRowKey);
+		console.log('   ' + (account.count += results.length) + ' results added from ' + account.account);
 		if (raw.hasNextPage()) {
 			var nextPageQuery = azure.TableQuery
 				.select()
@@ -27,17 +33,8 @@ _(storage).each(function(account) {
 				.whereNextKeys(raw.nextPartitionKey, raw.nextRowKey);
 			tableService.queryEntities(nextPageQuery, processResponse);
 		} else {
-			results = [];
-			for (var time in data) {
-				var error = 0;
-				var success = 0;
-				for (var instance in data[time]) {
-					error += data[time][instance].error;
-					success += data[time][instance].success;
-				}
-				results.push([time, error, success]);
-			}
-			console.log(_.sortBy(results, function(val) { return val[0]; }));
+			account.loaded = true;
+			console.log('Done reading from ' + account.account);
 		}
 	};
 
@@ -48,8 +45,31 @@ _(storage).each(function(account) {
 	tableService.queryEntities(query, processResponse);
 });
 
-/*
-azure.createTableService().queryTables(function(err, results) {
-	console.log(results);
+
+
+var server = http.createServer(function(req, res) {
+	if (req.url == '/') {
+		fs.readFile('./index.html', function(err, content) {
+			res.writeHead(200, { 'content-type': 'text/html' });
+			res.end(content);
+		});
+	} else if (req.url == '/minutes') {
+		var response = _.chain(data)
+			.map(function(val, key) {
+				return [
+					key,
+					_.reduce(val, function(memo, v) { return memo + v.success; }, 0),
+					_.reduce(val, function(memo, v) { return memo + v.error; }, 0)
+				];
+			})
+			.sortBy(function(val) { return val[0]; })
+			.value();
+		res.writeHead(200, { 'content-type': 'text/javascript' });
+		res.end(JSON.stringify(response));
+	}
 });
-*/
+
+server.listen(port);
+
+
+
