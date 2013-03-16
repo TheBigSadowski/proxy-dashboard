@@ -3750,7 +3750,7 @@ var data = [
 
 
 var byDay = _.chain(data)
-	.groupBy(function(d) { return d[0].substring(0, 13); })
+	.groupBy(function(d) { return d[0].substring(0, 10); })
 	.map(function(v, y) { 
 		return [
 			y,
