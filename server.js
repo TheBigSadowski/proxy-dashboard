@@ -13,7 +13,6 @@ var processResponse = function(err, results, raw) {
 	_(results).each(function(entity) {
 		var time = data[entity.PartitionKey] || (data[entity.PartitionKey] = {});
 		time[entity.RowKey] = { error: entity.Error, success: entity.Success };
-		console.log(entity.PartitionKey + '       ' + entity.RowKey);
 	});
 	console.log(results.length + ' results added');
 	console.log('next: ' + raw.nextPartitionKey + ' - ' + raw.nextRowKey);
@@ -21,25 +20,29 @@ var processResponse = function(err, results, raw) {
 		var nextPageQuery = azure.TableQuery
 			.select()
 			.from('timeData')
-			.where('Errors gte ?', 0)
-//			.top(100)
-//			.whereNextKeys(raw.nextPartitionKey, raw.nextRowKey)
-		;
+			.whereNextKeys(raw.nextPartitionKey, raw.nextRowKey);
 		azure.createTableService().queryEntities(nextPageQuery, processResponse);
+	} else {
+		results = [];
+		for (var time in data) {
+			var error = 0;
+			var success = 0;
+			for (var instance in data[time]) {
+				error += data[time][instance].error;
+				success += data[time][instance].success;
+			}
+			results.push([time, error, success]);
+			//console.log(time + '  e:' + error + '  s:' + success);
+		}
+		console.log(results);
 	}
 };
 
 var query = azure.TableQuery
 	.select()
-	.from('timeData')
-	.whereKeys('2013-03-13 21:06:00Z')
-//	.top(100)
-;
+	.from('timeData');
 
 tableService.queryEntities(query, processResponse);
-
-//tableQuery.select().from(tableName).top(pageSize).whereNextKeys(nextPartitionKey, nextRowKey);
-
 
 /*
 azure.createTableService().queryTables(function(err, results) {
