@@ -9,7 +9,9 @@
 	<script type="text/javascript" src="http://underscorejs.org/underscore-min.js"></script>
 	<script type="text/javascript">
 		google.load("visualization", "1", {packages:["corechart"]});
-		google.setOnLoadCallback(function() {
+		google.setOnLoadCallback(loadCharts);
+		setInterval(loadCharts, 10000);
+		function loadCharts() {
 			$.get('/minutes', function(data) {
 				var chartData = google.visualization.arrayToDataTable(JSON.parse(data));
 				var options = {
@@ -51,7 +53,7 @@
 				var chart = new google.visualization.AreaChart(document.getElementById('chart_days'));
 				chart.draw(chartData, options);
 			});
-		});
+		}
 	</script>
   </head>
   <body>
