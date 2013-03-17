@@ -19,7 +19,8 @@
 					isStacked: true,
 					colors: ['blue', 'red'],
 					backgroundColor: '#000',
-					hAxis: { textPosition: 'none' }
+					hAxis: { slantedText: true, slantedTextAngle: 90, textStyle: { color: '#555' } },
+					legend: { textStyle: { color: '#555' } }
 				};
 				var chart = new google.visualization.AreaChart(document.getElementById('chart_minutes'));
 				chart.draw(chartData, options);
@@ -33,7 +34,8 @@
 					isStacked: true,
 					colors: ['blue', 'red'],
 					backgroundColor: '#000',
-					hAxis: { textPosition: 'none' }
+					hAxis: { slantedText: true, slantedTextAngle: 90, textStyle: { color: '#555' } },
+					legend: { textStyle: { color: '#555' } }
 				};
 				var chart = new google.visualization.AreaChart(document.getElementById('chart_hours'));
 				chart.draw(chartData, options);
@@ -47,7 +49,8 @@
 					isStacked: true,
 					colors: ['blue', 'red'],
 					backgroundColor: '#000',
-					hAxis: { textPosition: 'none' }
+					hAxis: { slantedText: true, slantedTextAngle: 90, textStyle: { color: '#555' } },
+					legend: { textStyle: { color: '#555' } }
 				};
 				var chart = new google.visualization.AreaChart(document.getElementById('chart_days'));
 				chart.draw(chartData, options);

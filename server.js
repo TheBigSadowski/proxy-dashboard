@@ -11,13 +11,14 @@ for (var i = 0; process.env['AZURE_STORAGE_ACCOUNT_' + i]; i++) {
 	storage.push({
 		account: process.env['AZURE_STORAGE_ACCOUNT_' + i],
 		key: process.env['AZURE_STORAGE_ACCESS_KEY_' + i],
-		count: 0
+		count: 0,
+		lastPartitionKey: ''
 	});
 }
 
 var data = {};
 
-_(storage).each(function(account) {
+var loadData = function(account) {
 	var tableService = azure.createTableService(account.account, account.key);
 	var processResponse = function(err, results, raw) {
 		if (err) console.log(err);
@@ -30,21 +31,29 @@ _(storage).each(function(account) {
 			var nextPageQuery = azure.TableQuery
 				.select()
 				.from('timeData')
+				.where("PartitionKey ge ?", account.lastPartitionKey)
 				.whereNextKeys(raw.nextPartitionKey, raw.nextRowKey);
 			tableService.queryEntities(nextPageQuery, processResponse);
 		} else {
+			if (!account.interval) {
+				account.interval = setInterval(function() { loadData(account); }, 60 * 1000);
+			}
 			account.loaded = true;
+			account.lastPartitionKey = _.max(results, function(entity) { return entity.PartitionKey; }).PartitionKey;
 			console.log('Done reading from ' + account.account);
 		}
 	};
 
 	var query = azure.TableQuery
 		.select()
+		.where("PartitionKey ge ?", account.lastPartitionKey)
 		.from('timeData');
 
 	tableService.queryEntities(query, processResponse);
-});
+};
 
+
+_(storage).each(loadData);
 
 
 var server = http.createServer(function(req, res) {
@@ -63,7 +72,9 @@ var server = http.createServer(function(req, res) {
 				];
 			})
 			.sortBy(function(val) { return val[0]; })
+			.last(60 * 24)
 			.value();
+		response = _.union([['Date & Time (UTC)', 'Success', 'Error']], response);
 		res.writeHead(200, { 'content-type': 'text/javascript' });
 		res.end(JSON.stringify(response));
 	} else if (req.url == '/hours') {
@@ -84,7 +95,9 @@ var server = http.createServer(function(req, res) {
 				];
 			})
 			.sortBy(function(val) { return val[0]; })
+			.last(24 * 30)
 			.value();
+		response = _.union([['Date & Time (UTC)', 'Success', 'Error']], response);
 		res.writeHead(200, { 'content-type': 'text/javascript' });
 		res.end(JSON.stringify(response));
 	} else if (req.url == '/days') {
@@ -106,6 +119,7 @@ var server = http.createServer(function(req, res) {
 			})
 			.sortBy(function(val) { return val[0]; })
 			.value();
+		response = _.union([['Date & Time (UTC)', 'Success', 'Error']], response);
 		res.writeHead(200, { 'content-type': 'text/javascript' });
 		res.end(JSON.stringify(response));
 	}
