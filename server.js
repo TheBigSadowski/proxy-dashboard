@@ -39,11 +39,12 @@ var loadData = function(account) {
 				account.interval = setInterval(function() { loadData(account); }, 60 * 1000);
 			}
 			account.loaded = true;
-			account.lastPartitionKey = _.max(results, function(entity) { return entity.PartitionKey; }).PartitionKey;
-			console.log('Done reading from ' + account.account);
+			account.lastPartitionKey = _.last(results).PartitionKey;
+			console.log('Done reading from ' + account.account + ' [' + account.lastPartitionKey + ']');
 		}
 	};
 
+	console.log(account.account + ' reading from ' + account.lastPartitionKey);
 	var query = azure.TableQuery
 		.select()
 		.where("PartitionKey ge ?", account.lastPartitionKey)
