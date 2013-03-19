@@ -75,7 +75,7 @@ var server = http.createServer(function(req, res) {
 			.sortBy(function(val) { return val[0]; })
 			.last(60 * 24)
 			.value();
-		response = _.union([['Date & Time (UTC)', 'Success', 'Error']], response);
+		response = _.union([['Date & Time (UTC)', 'Correct', 'Different']], response);
 		res.writeHead(200, { 'content-type': 'text/javascript' });
 		res.end(JSON.stringify(response));
 	} else if (req.url == '/hours') {
@@ -98,7 +98,7 @@ var server = http.createServer(function(req, res) {
 			.sortBy(function(val) { return val[0]; })
 			.last(24 * 30)
 			.value();
-		response = _.union([['Date & Time (UTC)', 'Success', 'Error']], response);
+		response = _.union([['Date & Time (UTC)', 'Correct', 'Different']], response);
 		res.writeHead(200, { 'content-type': 'text/javascript' });
 		res.end(JSON.stringify(response));
 	} else if (req.url == '/days') {
@@ -120,7 +120,7 @@ var server = http.createServer(function(req, res) {
 			})
 			.sortBy(function(val) { return val[0]; })
 			.value();
-		response = _.union([['Date & Time (UTC)', 'Success', 'Error']], response);
+		response = _.union([['Date & Time (UTC)', 'Correct', 'Different']], response);
 		res.writeHead(200, { 'content-type': 'text/javascript' });
 		res.end(JSON.stringify(response));
 	}
