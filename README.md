@@ -12,19 +12,19 @@ NOTE: Right now (due to node-azure dependancy) this will not run on Node.js 0.10
 ## 2) Set environment variables:
 
 Windows:
+    set AZURE_STORAGE_ACCOUNT_0=[account-name]
+    set AZURE_STORAGE_ACCESS_KEY_0=[access-key]
     set AZURE_STORAGE_ACCOUNT_1=[account-name]
     set AZURE_STORAGE_ACCESS_KEY_1=[access-key]
-    set AZURE_STORAGE_ACCOUNT_2=[account-name]
-    set AZURE_STORAGE_ACCESS_KEY_2=[access-key]
     ...
     set AZURE_STORAGE_ACCOUNT_N=[account-name]
     set AZURE_STORAGE_ACCESS_KEY_N=[access-key]
 
 OSX:
+    export AZURE_STORAGE_ACCOUNT_0=[account-name]
+    export AZURE_STORAGE_ACCESS_KEY_0=[access-key]
     export AZURE_STORAGE_ACCOUNT_1=[account-name]
     export AZURE_STORAGE_ACCESS_KEY_1=[access-key]
-    export AZURE_STORAGE_ACCOUNT_2=[account-name]
-    export AZURE_STORAGE_ACCESS_KEY_2=[access-key]
     ...
     export AZURE_STORAGE_ACCOUNT_N=[account-name]
     export AZURE_STORAGE_ACCESS_KEY_N=[access-key]
