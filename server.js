@@ -177,10 +177,10 @@ var server = http.createServer(function(req, res) {
 				return [key, value];
 			})
 			.sortBy(function (diff) {
-				return diff[1];
+				return -diff[1];
 			})
-			.last(10)
-			.reverse()
+			.first(10)
+			//.reverse()
 			.value();
 		res.writeHead(200, { 'content-type': 'text/javascript' });
 		res.end(JSON.stringify(response));
