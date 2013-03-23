@@ -6,10 +6,10 @@ var fs = require('fs');
 
 var port = process.env.PORT || 8888;
 
-var storage = [];
+var accounts = [];
 for (var i = 0; process.env['AZURE_STORAGE_ACCOUNT_' + i]; i++) {
-	storage.push({
-		account: process.env['AZURE_STORAGE_ACCOUNT_' + i],
+	accounts.push({
+		name: process.env['AZURE_STORAGE_ACCOUNT_' + i],
 		key: process.env['AZURE_STORAGE_ACCESS_KEY_' + i],
 		count: 0,
 		lastPartitionKey: ''
@@ -19,14 +19,14 @@ for (var i = 0; process.env['AZURE_STORAGE_ACCOUNT_' + i]; i++) {
 var data = {};
 
 var loadData = function(account) {
-	var tableService = azure.createTableService(account.account, account.key);
+	var tableService = azure.createTableService(account.name, account.key);
 	var processResponse = function(err, results, raw) {
 		if (err) console.log(err);
 		_(results).each(function(entity) {
 			var time = data[entity.PartitionKey] || (data[entity.PartitionKey] = {});
-			time[account.account + '.' + entity.RowKey] = { error: entity.Error, success: entity.Success };
+			time[account.name + '.' + entity.RowKey] = { error: entity.Error, success: entity.Success };
 		});
-		console.log('   ' + (account.count += results.length) + ' results added from ' + account.account);
+		console.log('   ' + (account.count += results.length) + ' results added from ' + account.name);
 		if (raw.hasNextPage()) {
 			var nextPageQuery = azure.TableQuery
 				.select()
@@ -40,11 +40,11 @@ var loadData = function(account) {
 			}
 			account.loaded = true;
 			account.lastPartitionKey = _.last(results).PartitionKey;
-			console.log('Done reading from ' + account.account + ' [' + account.lastPartitionKey + ']');
+			console.log('Done reading from ' + account.name + ' [' + account.lastPartitionKey + ']');
 		}
 	};
 
-	console.log(account.account + ' reading from ' + account.lastPartitionKey);
+	console.log(account.name + ' reading from ' + account.lastPartitionKey);
 	var query = azure.TableQuery
 		.select()
 		.where("PartitionKey ge ?", account.lastPartitionKey)
@@ -54,7 +54,7 @@ var loadData = function(account) {
 };
 
 
-_(storage).each(loadData);
+_(accounts).each(loadData);
 
 
 var server = http.createServer(function(req, res) {
