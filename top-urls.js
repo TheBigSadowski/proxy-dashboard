@@ -17,7 +17,7 @@ for (var i = 0; process.env['AZURE_STORAGE_ACCOUNT_' + i]; i++) {
 	});
 }
 
-var sixtyMinutesAgo = new Date().getTime() - 1 * 60 * 60 * 1000; //hours * minutes * seonds * miliseconds
+var sixtyMinutesAgo = new Date().getTime() - 1 * 10 * 60 * 1000; //hours * minutes * seonds * miliseconds
 var ticks = ((sixtyMinutesAgo * 10000) + 621355968000000000) // microseconds * windows epoch
 var firstKey = '0' + ticks;
 
