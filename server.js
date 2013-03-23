@@ -174,16 +174,13 @@ var server = http.createServer(function(req, res) {
 	} else if ('/urls' == req.url) {
 		var response = _.chain(urls)
 			.map(function (value, key) {
-				return { url: key, count: value };
+				return [key, value];
 			})
 			.sortBy(function (diff) {
-				return diff.count;
+				return diff[1];
 			})
 			.last(10)
 			.reverse()
-			.map(function (obj) {
-				return [obj.url, obj.count];
-			})
 			.value();
 		res.writeHead(200, { 'content-type': 'text/javascript' });
 		res.end(JSON.stringify(response));
