@@ -171,7 +171,7 @@ var server = http.createServer(function(req, res) {
 		response.percent = (response.success/(response.success+response.error)*100).toPrecision(5) + '%';
 		res.writeHead(200, { 'content-type': 'text/javascript' });
 		res.end(JSON.stringify(response));
-	} else if ('/top-urls' == req.url) {
+	} else if ('/urls' == req.url) {
 		var response = _.chain(urls)
 			.map(function (value, key) {
 				return { url: key, count: value };

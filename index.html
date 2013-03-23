@@ -18,7 +18,7 @@ h1 { text-align: center; }
 			var p = JSON.parse(data);
 			$('#progress').text(p.percent);
 		});
-		$.get('/top-urls', function (data) {
+		$.get('/urls', function (data) {
 			var top = JSON.parse(data);
 			$('#urls tbody').empty();
 			$(top).each(function(index, element){  
