@@ -7,7 +7,6 @@
   },
   "dependencies": {
    "underscore": "*",
-   "async": "*",
    "azure": "*"
   }
 }
