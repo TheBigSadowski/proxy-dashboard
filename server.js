@@ -184,7 +184,10 @@ var server = http.createServer(function(req, res) {
 			.value();
 		res.writeHead(200, { 'content-type': 'text/javascript' });
 		res.end(JSON.stringify(response));
-	}
+	} else {
+		res.writeHead(404, { 'content-type': 'text/plain'});
+		res.end('sorry nothing here.');
+	}	
 });
 
 server.listen(port);
