@@ -26,7 +26,7 @@ var loadData = function(account) {
 			var time = data[entity.PartitionKey] || (data[entity.PartitionKey] = {});
 			time[account.name + '.' + entity.RowKey] = { error: entity.Error, success: entity.Success };
 		});
-		console.log('   ' + (account.count += results.length) + ' results added from ' + account.name);
+		console.log('	' + (account.count += results.length) + ' results added from ' + account.name);
 		if (raw.hasNextPage()) {
 			var nextPageQuery = azure.TableQuery
 				.select()
@@ -56,6 +56,38 @@ var loadData = function(account) {
 
 _(accounts).each(loadData);
 
+
+// loading the top urls that are causing diffs
+var urls = {};
+
+var getFirstKey = function () {
+	var sixtyMinutesAgo = new Date().getTime() - 1 * 5 * 60 * 1000; //hours * minutes * seonds * miliseconds
+	var ticks = ((sixtyMinutesAgo * 10000) + 621355968000000000) // microseconds * windows epoch
+	return '0' + ticks;
+}
+
+_.each(accounts, function (account) {
+	account.tableService = azure.createTableService(account.name, account.key);
+	account.findTopUrls = function (nextPartitionKey, nextRowKey) {
+		var query = azure.TableQuery
+			.select('Message')
+			.from('WADLogsTable')
+			.whereNextKeys(nextPartitionKey || getFirstKey(), nextRowKey || '');
+
+		account.tableService.queryEntities(query, function (err, results, raw) {
+			if (raw.hasNextPage()) {
+				account.findTopUrls(raw.nextPartitionKey, raw.nextRowKey);
+			}
+			_.each(results, function (result) {
+				var match = /Original URL: (.*)\n/.exec(result.Message);
+				if (!match) return;
+				var url = match[1];
+				urls[url] = (urls[url] || 0) + 1;
+			});
+		});
+	};
+	account.findTopUrls();
+});
 
 var server = http.createServer(function(req, res) {
 	if (req.url == '/') {
@@ -137,6 +169,19 @@ var server = http.createServer(function(req, res) {
 			.reduce(function (memo, val) { return { success: memo.success + val[1], error: memo.error + val[2] }; }, { success: 0, error: 0})
 			.value();
 		response.percent = (response.success/(response.success+response.error)*100).toPrecision(5) + '%';
+		res.writeHead(200, { 'content-type': 'text/javascript' });
+		res.end(JSON.stringify(response));
+	} else if ('/top-urls' == req.url) {
+		var response = _.chain(urls)
+			.map(function (value, key) {
+				return { url: key, count: value };
+			})
+			.sortBy(function (diff) {
+				return diff.count;
+			})
+			.last(10)
+			.reverse()
+			.value();
 		res.writeHead(200, { 'content-type': 'text/javascript' });
 		res.end(JSON.stringify(response));
 	}

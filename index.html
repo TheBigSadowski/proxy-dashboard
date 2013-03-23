@@ -1,8 +1,11 @@
 <!DOCTYPE html>
 <html>
 <head>
+<title>Proxy Dashboard</title>
 <style type="text/css">
-body { background: #000; color: #ddd; }
+body { background: #000; color: #555; font-family: Helvetica, Arial, san-serif; }
+table { margin: 20px auto; }
+h1 { text-align: center; }
 </style>
 <script type="text/javascript" src="https://www.google.com/jsapi"></script>
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
@@ -12,7 +15,15 @@ body { background: #000; color: #ddd; }
 	setInterval(loadCharts, 10000);
 	function loadCharts() {
 		$.get('/progress', function (data) {
-			$('#progress').text(JSON.parse(data).percent);
+			var p = JSON.parse(data);
+			$('#progress').text(p.percent);
+		});
+		$.get('/top-urls', function (data) {
+			var top = JSON.parse(data);
+			$('#urls tbody').empty();
+			$(top).each(function(index, element){  
+			     $('#urls tbody').append('<tr><td>'+(index+1)+'</td><td>'+element.count+'</td><td>'+element.url+'</td></tr>');       
+			})
 		});
 		$.get('/minutes', function (data) {
 			var chartData = google.visualization.arrayToDataTable(JSON.parse(data));
@@ -64,6 +75,10 @@ body { background: #000; color: #ddd; }
 </head>
 <body>
 <h1><span id="progress">??%</span> Complete</h1>
+<table id="urls">
+	<thead><tr><th>Rank</th><th>Diffs</th><th>URL</th></tr></thead>
+	<tbody></tbody>
+</table>
 <div id="chart_days" style="height: 500px;"></div>
 <div id="chart_hours" style="height: 500px;"></div>
 <div id="chart_minutes" style="height: 500px;"></div>
