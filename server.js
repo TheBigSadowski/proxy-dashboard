@@ -181,6 +181,9 @@ var server = http.createServer(function(req, res) {
 			})
 			.last(10)
 			.reverse()
+			.map(function (obj) {
+				return [obj.url, obj.count];
+			})
 			.value();
 		res.writeHead(200, { 'content-type': 'text/javascript' });
 		res.end(JSON.stringify(response));
