@@ -9,12 +9,13 @@ var port = process.env.PORT || 8888;
 
 var accounts = [];
 for (var i = 0; process.env['AZURE_STORAGE_ACCOUNT_' + i]; i++) {
-	storage.push({
+	accounts.push({
 		name: process.env['AZURE_STORAGE_ACCOUNT_' + i],
-		key: process.env['AZURE_STORAGE_ACCESS_KEY_' + i]
+		key: process.env['AZURE_STORAGE_ACCESS_KEY_' + i],
+		count: 0,
+		lastPartitionKey: ''
 	});
 }
-
 
 var sixtyMinutesAgo = new Date().getTime() - 1 * 60 * 60 * 1000; //hours * minutes * seonds * miliseconds
 var ticks = ((sixtyMinutesAgo * 10000) + 621355968000000000) // microseconds * windows epoch
@@ -22,7 +23,7 @@ var firstKey = '0' + ticks;
 
 _.each(accounts, function (account) {
     account.tableService = azure.createTableService(account.name, account.key);
-    account.findData = function (nextPartitionKey, nextRowKey) {
+    account.findTopUrls = function (nextPartitionKey, nextRowKey) {
         var query = azure.TableQuery
             .select('Message')
             .from('WADLogsTable')
@@ -30,7 +31,7 @@ _.each(accounts, function (account) {
 
         account.tableService.queryEntities(query, function (err, results, raw) {
             if (raw.hasNextPage()) {
-                account.findData(raw.nextPartitionKey, raw.nextRowKey);
+                account.findTopUrls(raw.nextPartitionKey, raw.nextRowKey);
             } else {
                 console.log(account.name + ' done');
             }
@@ -43,7 +44,7 @@ _.each(accounts, function (account) {
             });
         });
     };
-    account.findData();
+    account.findTopUrls();
 });
 
 var printResults = function () {
