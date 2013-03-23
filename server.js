@@ -123,6 +123,22 @@ var server = http.createServer(function(req, res) {
 		response = _.union([['Date & Time (UTC)', 'Correct', 'Different']], response);
 		res.writeHead(200, { 'content-type': 'text/javascript' });
 		res.end(JSON.stringify(response));
+	} else if (req.url == '/progress') {
+		var response = _.chain(data)
+			.map(function(val, key) {
+				return [
+					key,
+					_.reduce(val, function(memo, v) { return memo + v.success; }, 0),
+					_.reduce(val, function(memo, v) { return memo + v.error; }, 0)
+				];
+			})
+			.sortBy(function (d) { return d[0]; })
+			.last(60)
+			.reduce(function (memo, val) { return { success: memo.success + val[1], error: memo.error + val[2] }; }, { success: 0, error: 0})
+			.value();
+		response.percent = (response.success/(response.success+response.error)*100).toPrecision(5) + '%';
+		res.writeHead(200, { 'content-type': 'text/javascript' });
+		res.end(JSON.stringify(response));
 	}
 });
 
