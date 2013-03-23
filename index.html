@@ -22,7 +22,7 @@ h1 { text-align: center; }
 			var top = JSON.parse(data);
 			$('#urls tbody').empty();
 			$(top).each(function(index, element){  
-			     $('#urls tbody').append('<tr><td>'+(index+1)+'</td><td>'+element[1]+'</td><td>'+element[0]+'</td></tr>');       
+			     $('#urls tbody').append('<tr><td>'+(index+1)+'</td><td>'+element[1]+' ('+element[2]+'%)</td><td>'+element[0]+'</td></tr>');       
 			})
 		});
 		$.get('/minutes', function (data) {
@@ -76,7 +76,7 @@ h1 { text-align: center; }
 <body>
 <!--<h1><span id="progress">??%</span> Complete</h1>-->
 <table id="urls">
-	<thead><tr><th>Rank</th><th>Diffs</th><th>URL</th></tr></thead>
+	<thead><tr><th>Rank</th><th>Diffs</th><th>Top Problem URLs (last 5 minutes)</th></tr></thead>
 	<tbody></tbody>
 </table>
 <div id="chart_days" style="height: 500px;"></div>

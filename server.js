@@ -59,6 +59,7 @@ _(accounts).each(loadData);
 
 // loading the top urls that are causing diffs
 var urls = {};
+var urlCount = 0;
 
 var getFirstKey = function () {
 	var sixtyMinutesAgo = new Date().getTime() - 1 * 5 * 60 * 1000; //hours * minutes * seonds * miliseconds
@@ -83,6 +84,7 @@ _.each(accounts, function (account) {
 				if (!match) return;
 				var url = match[1];
 				urls[url] = (urls[url] || 0) + 1;
+				urlCount++;
 			});
 		});
 	};
@@ -174,13 +176,12 @@ var server = http.createServer(function(req, res) {
 	} else if ('/urls' == req.url) {
 		var response = _.chain(urls)
 			.map(function (value, key) {
-				return [key, value];
+				return [key, value, (value/urlCount*100).toPrecision(3)];
 			})
 			.sortBy(function (diff) {
 				return -diff[1];
 			})
 			.first(10)
-			//.reverse()
 			.value();
 		res.writeHead(200, { 'content-type': 'text/javascript' });
 		res.end(JSON.stringify(response));
