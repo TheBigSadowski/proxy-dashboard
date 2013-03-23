@@ -22,7 +22,7 @@ h1 { text-align: center; }
 			var top = JSON.parse(data);
 			$('#urls tbody').empty();
 			$(top).each(function(index, element){  
-			     $('#urls tbody').append('<tr><td>'+(index+1)+'</td><td>'+element[1]+' ('+element[2]+'%)</td><td>'+element[0]+'</td></tr>');       
+			     $('#urls tbody').append('<tr><td>'+(index+1)+'</td><td>'+element[1]+' ('+element[2]+'%)</td><td><a href="/search?for='+encodeURIComponent(element[0])+'">'+element[0]+'</a></td></tr>');       
 			})
 		});
 		$.get('/minutes', function (data) {

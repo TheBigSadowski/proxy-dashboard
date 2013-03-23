@@ -4,6 +4,8 @@ var azure = require('azure');
 var _ = require('underscore');
 var fs = require('fs');
 
+String.prototype.contains = function (it) { return this.indexOf(it) != -1; };
+
 var port = process.env.PORT || 8888;
 
 var accounts = [];
@@ -61,8 +63,8 @@ _(accounts).each(loadData);
 var urls = {};
 var urlCount = 0;
 
-var getFirstKey = function () {
-	var sixtyMinutesAgo = new Date().getTime() - 1 * 5 * 60 * 1000; //hours * minutes * seonds * miliseconds
+var getFirstKey = function (minutes) {
+	var sixtyMinutesAgo = new Date().getTime() - 1 * (minutes||5) * 60 * 1000; //hours * minutes * seonds * miliseconds
 	var ticks = ((sixtyMinutesAgo * 10000) + 621355968000000000) // microseconds * windows epoch
 	return '0' + ticks;
 }
@@ -88,8 +90,18 @@ _.each(accounts, function (account) {
 			});
 		});
 	};
-	account.findTopUrls();
 });
+
+var loadNewTopUrls = function() {
+	urls = {};
+	urlCount = 0;
+	_.each(accounts, function(account) {
+		account.findTopUrls();
+	});
+};
+
+setInterval(loadNewTopUrls, 10 * 60 * 1000);
+loadNewTopUrls();
 
 var server = http.createServer(function(req, res) {
 	if (req.url == '/') {
@@ -188,6 +200,41 @@ var server = http.createServer(function(req, res) {
 	} else if ('/raw-urls' == req.url) {
 		res.writeHead(200, { 'content-type': 'text/javascript' });
 		res.end(JSON.stringify(urls));
+	} else if ('/search' == req.url.substring(0, '/search'.length)) {
+		var url = require('url').parse(req.url, true);
+		_.each(accounts, function (account) {
+			req[account] = {done: false};
+			var findData = function (nextPartitionKey, nextRowKey) {
+				var query = azure.TableQuery
+					.select('Message')
+					.from('WADLogsTable')
+					.whereNextKeys(nextPartitionKey || getFirstKey(5), nextRowKey || '');
+				
+				console.log('  searching for ['+url.query.for+'] on '+account.name+' > ' + nextPartitionKey);
+				account.tableService.queryEntities(query, function (err, results, raw) {
+					if (raw.hasNextPage()) {
+						findData(raw.nextPartitionKey, raw.nextRowKey);
+					} else {
+						req[account].done = true;
+						if (_.every(accounts, function(a) { return req[a].done; })) {
+							res.end();
+						}
+					}
+					for (var i = 0; i < results.length; i++) {
+						if (results[i].Message.contains(url.query.for)) {
+							res.write('<pre>'+_.escape(results[i].Message)+'</pre>');
+							//console.log('found...');
+							//console.log(results[i].Message);
+						}
+					}
+				});
+			};
+			findData();
+			
+		});
+		res.writeHead(200, { 'content-type': 'text/html' });
+		res.write('<h1>Diffs for ' + _.escape(url.query.for) + '</h1>');
+		console.log('looking for: '+url.query.for);
 	} else {
 		res.writeHead(404, { 'content-type': 'text/plain'});
 		res.end('sorry nothing here.');
