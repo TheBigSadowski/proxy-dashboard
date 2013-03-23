@@ -210,14 +210,14 @@ var server = http.createServer(function(req, res) {
 					.from('WADLogsTable')
 					.whereNextKeys(nextPartitionKey || getFirstKey(5), nextRowKey || '');
 				
-				console.log('  searching for ['+url.query.for+'] on '+account.name+' > ' + nextPartitionKey);
+				//console.log('  searching for ['+url.query.for+'] on '+account.name+' > ' + nextPartitionKey);
 				account.tableService.queryEntities(query, function (err, results, raw) {
 					if (raw.hasNextPage()) {
 						findData(raw.nextPartitionKey, raw.nextRowKey);
 					} else {
 						req[account].done = true;
 						if (_.every(accounts, function(a) { return req[a].done; })) {
-							res.end();
+							res.end('</body></html>');
 						}
 					}
 					for (var i = 0; i < results.length; i++) {
@@ -233,6 +233,18 @@ var server = http.createServer(function(req, res) {
 			
 		});
 		res.writeHead(200, { 'content-type': 'text/html' });
+		res.write('<html>')
+		res.write('<head>')
+		res.write('<title>Diffs containing "' + _.escape(url.query.for) + '"</title>');
+		res.write('<style type="text/css">');
+		res.write('body { background: #000; color: #555; font-family: Helvetica, Arial, san-serif; }');
+		res.write('pre { border: solid 1px #444; background: #222; color: #999; padding: 10px; }');
+		res.write('h1 { text-align: center; }');
+		res.write('a { color: #666; }');
+		res.write('a:visited { color: #444; }');
+		res.write('</style>');
+		res.write('<head>');
+		res.write('<body>');
 		res.write('<h1>Diffs for ' + _.escape(url.query.for) + '</h1>');
 		console.log('looking for: '+url.query.for);
 	} else {
