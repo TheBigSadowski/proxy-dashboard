@@ -206,7 +206,7 @@ var server = http.createServer(function(req, res) {
 			req[account] = {done: false};
 			var findData = function (nextPartitionKey, nextRowKey) {
 				var query = azure.TableQuery
-					.select('Message')
+					.select('PartitionKey', 'RowKey', 'Message')
 					.from('WADLogsTable')
 					.whereNextKeys(nextPartitionKey || getFirstKey(5), nextRowKey || '');
 				
@@ -223,7 +223,7 @@ var server = http.createServer(function(req, res) {
 					for (var i = 0; i < results.length; i++) {
 						if (results[i].Message.contains(url.query.for)) {
 							res.write('<pre>'+_.escape(results[i].Message)+'</pre>');
-							res.write('<div><a href="/decode?data='+encodeURIComponent(results[i].Message)+'">decode</a></div>')
+							res.write('<div><a href="/decode?account='+account.name+'&partition='+results[i].PartitionKey+'&row='+results[i].RowKey+'">decode</a></div>')
 							//console.log('found...');
 							//console.log(results[i].Message);
 						}
@@ -250,58 +250,59 @@ var server = http.createServer(function(req, res) {
 		console.log('looking for: '+url.query.for);
 	} else if ('/decode' == req.url.substring(0, '/decode'.length)) {
 		var url = require('url').parse(req.url, true);
-		var u = /^Original URL: (.*)$/m.exec(url.query.data);
-		var p = /^P: StatusCode: (\d{3}) \w+, Version: 1\.1, Headers: \[(.*)\] Body: ([a-zA-Z0-9=\+\/]*)$/m.exec(url.query.data);
-		var s = /^S: StatusCode: (\d{3}) \w+, Version: 1\.1, Headers: \[(.*)\] Body: ([a-zA-Z0-9=\+\/]*)$/m.exec(url.query.data);
-//		var response = new Buffer(url.query, 'base64').toString('utf8');
-		var result = {
-			u: u[1],
-			p: { name: 'primary', status: p[1], headers: splitHeaders(p[2]), body: new Buffer(p[3], 'base64').toString('utf8') },
-			s: { name: 'secondary', status: s[1], headers: splitHeaders(s[2]), body: new Buffer(s[3], 'base64').toString('utf8') }
-		};
-		res.writeHead(200, { 'content-type': 'text/html' });
-		res.write('<!DOCTYPE html>');
-		res.write('<style type="text/css">');
-		res.write('body { background: #000; color: #555; font-family: Helvetica, Arial, san-serif; }');
-		//res.write('pre { border: solid 1px #444; background: #222; color: #999; padding: 10px; }');
-		res.write('pre { font-size: 1em; }');
-		res.write('h1 { text-align: center; }');
-		res.write('h2 { font-size: 1em; }');
-		res.write('a { color: #666; }');
-		res.write('a:visited { color: #444; }');
-		res.write('ins { color: orange; }');
-		res.write('del { color: red; }');
-		res.write('div { font-family: monospace; font-size: 1em; }')
-		res.write('</style>');
-		//res.write('<style type="text/css">pre { position: absolute; top: 2em; left: 0; padding: 20px; } .primary { color: red; }</style>');
+		var account = _.findWhere(accounts, { name: url.query.account });
+		account.tableService.queryEntity('WADLogsTable', url.query.partition, url.query.row, function (err, entity) {
+			var u = /^Original URL: (.*)$/m.exec(entity.Message);
+			var p = /^P: StatusCode: (\d{3}) \w+, Version: 1\.1, Headers: \[(.*)\] Body: ([a-zA-Z0-9=\+\/]*)$/m.exec(entity.Message);
+			var s = /^S: StatusCode: (\d{3}) \w+, Version: 1\.1, Headers: \[(.*)\] Body: ([a-zA-Z0-9=\+\/]*)$/m.exec(entity.Message);
+			var result = {
+				u: u[1],
+				p: { name: 'primary', status: p[1], headers: splitHeaders(p[2]), body: new Buffer(p[3], 'base64').toString('utf8') },
+				s: { name: 'secondary', status: s[1], headers: splitHeaders(s[2]), body: new Buffer(s[3], 'base64').toString('utf8') }
+			};
+			res.writeHead(200, { 'content-type': 'text/html' });
+			res.write('<!DOCTYPE html>');
+			res.write('<style type="text/css">');
+			res.write('body { background: #000; color: #555; font-family: Helvetica, Arial, san-serif; }');
+			//res.write('pre { border: solid 1px #444; background: #222; color: #999; padding: 10px; }');
+			res.write('pre { font-size: 1em; }');
+			res.write('h1 { text-align: center; }');
+			res.write('h2 { font-size: 1em; }');
+			res.write('a { color: #666; }');
+			res.write('a:visited { color: #444; }');
+			res.write('ins { color: orange; }');
+			res.write('del { color: red; }');
+			res.write('div { font-family: monospace; font-size: 1em; }')
+			res.write('</style>');
+			//res.write('<style type="text/css">pre { position: absolute; top: 2em; left: 0; padding: 20px; } .primary { color: red; }</style>');
 
-		res.write('<h1>'+result.u+'</h1>');
-		var formatResult = function(r) {
-			var headers = _.reduce(r.headers, function(memo, h) { return memo + '\r\n' + h; });
-			return 'HTTP/1.1 '+r.status+'\r\n'+headers+'\r\n'+_.escape(r.body);
-		};
-		res.writeResult = function(r) {
-			res.write('<pre class="'+r.name+'">'+formatResult(r)+'</pre>');
-		};
-		
-		var diffs = require('diff').diffChars(formatResult(result.p), formatResult(result.s));
-		res.write('<div>');
-		_.each(diffs, function(d) {
-			if (d.added) {
-				res.write('<ins>'+d.value.replace('\r', '<br>')+'</ins>');
-			} else if (d.removed) {
-				res.write('<del>'+d.value.replace('\r', '<br>')+'</del>');
-			} else {
-				res.write(d.value.replace('\r', '<br>'));
-			}
+			res.write('<h1>'+result.u+'</h1>');
+			var formatResult = function(r) {
+				var headers = _.reduce(r.headers, function(memo, h) { return memo + '\r\n' + h; });
+				return 'HTTP/1.1 '+r.status+'\r\n'+headers+'\r\n'+_.escape(r.body);
+			};
+			res.writeResult = function(r) {
+				res.write('<pre class="'+r.name+'">'+formatResult(r)+'</pre>');
+			};
+
+			var diffs = require('diff').diffChars(formatResult(result.p), formatResult(result.s));
+			res.write('<div>');
+			_.each(diffs, function(d) {
+				if (d.added) {
+					res.write('<ins>'+d.value.replace('\r', '<br>')+'</ins>');
+				} else if (d.removed) {
+					res.write('<del>'+d.value.replace('\r', '<br>')+'</del>');
+				} else {
+					res.write(d.value.replace('\r', '<br>'));
+				}
+			});
+			res.write('</div>');
+			res.write('<h2>Primary:</h2>')
+			res.writeResult(result.p)
+			res.write('<h2>Secondary:</h2>')
+			res.writeResult(result.s)
+			res.end();
 		});
-		res.write('</div>');
-		//TODO: add in a decent diff algorythm here... maybe? http://kpdecker.github.com/jsdiff/
-		res.write('<h2>Primary:</h2>')
-		res.writeResult(result.p)
-		res.write('<h2>Secondary:</h2>')
-		res.writeResult(result.s)
-		res.end();
 	} else {
 		res.writeHead(404, { 'content-type': 'text/plain'});
 		res.end('sorry nothing here.');
