@@ -270,24 +270,20 @@ var server = http.createServer(function(req, res) {
 		res.write('a:visited { color: #444; }');
 		res.write('</style>');
 		res.write('<style type="text/css">pre { position: absolute; top: 2em; left: 0; padding: 20px; } .primary { color: red; }</style>');
+
 		res.write('<h1>'+result.u+'</h1>');
-		/*res.write('<table>')
-		res.write('<thead><tr><th>Primary</th><th>Secondary</th></tr></thead>')
-		res.write('<tbody>');
-		res.write('<tr>');*/
-		res.writeResult = function(r) {
+		var formatResult = function(r) {
 			var headers = _.reduce(r.headers, function(memo, h) { return memo + '\r\n' + h; });
-			res.write('<pre class="'+r.name+'">HTTP/1.1 '+r.status+'\r\n'+headers+'\r\n'+_.escape(r.body)+'</pre>');
+			return 'HTTP/1.1 '+r.status+'\r\n'+headers+'\r\n'+_.escape(r.body);
 		};
+		res.writeResult = function(r) {
+			res.write('<pre class="'+r.name+'">'+formatResult(r)+'</pre>');
+		};
+		
+		//TODO: add in a decent diff algorythm here... maybe? http://kpdecker.github.com/jsdiff/
 		res.writeResult(result.p)
 		res.writeResult(result.s)
-		//res.write('<pre class="'+d.name+'">Status: '+result.p.status+'\r\n'+_.reduce(result.p.headers, function(memo, h) { return memo + h + '\r\n'})+'\r\n'+_.escape(result.p.body)+'</pre></div>');
-		//res.write('<div><pre>Status: '+result.s.status+'</pre><pre>Headers: '+result.s.headers+'</pre><pre>'+_.escape(result.s.body)+'</pre></div>');
-		/*res.write('</tr>');
-		res.write('</tbody>');
-		res.write('</table>');*/
 		res.end();
-		//res.end(JSON.stringify());
 	} else {
 		res.writeHead(404, { 'content-type': 'text/plain'});
 		res.end('sorry nothing here.');
