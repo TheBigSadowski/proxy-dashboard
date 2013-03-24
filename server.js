@@ -289,9 +289,11 @@ var server = http.createServer(function(req, res) {
 			res.write('<pre>');
 			_.each(diffs, function(d) {
 				if (d.added) {
-					res.write('<ins>'+d.value+'</ins>');
+					res.write('<ins>'+d.value.replace('\r', '[CR]').replace('\n', '[LF]')+'</ins>');
+					//console.log('-added ['+encodeURIComponent(d.value)+']')
 				} else if (d.removed) {
-					res.write('<del>'+d.value+'</del>');
+					res.write('<del>'+d.value.replace('\r', '[CR]').replace('\n', '[LF]')+'</del>');
+					//console.log('-removed ['+d.value+']')
 				} else {
 					res.write(d.value);
 				}
