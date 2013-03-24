@@ -286,17 +286,17 @@ var server = http.createServer(function(req, res) {
 			};
 
 			var diffs = require('diff').diffChars(formatResult(result.p), formatResult(result.s));
-			res.write('<div>');
+			res.write('<pre>');
 			_.each(diffs, function(d) {
 				if (d.added) {
-					res.write('<ins>'+d.value.replace('\r', '<br>')+'</ins>');
+					res.write('<ins>'+d.value+'</ins>');
 				} else if (d.removed) {
-					res.write('<del>'+d.value.replace('\r', '<br>')+'</del>');
+					res.write('<del>'+d.value+'</del>');
 				} else {
-					res.write(d.value.replace('\r', '<br>'));
+					res.write(d.value);
 				}
 			});
-			res.write('</div>');
+			res.write('</pre>');
 			res.write('<h2>Primary:</h2>')
 			res.writeResult(result.p)
 			res.write('<h2>Secondary:</h2>')
