@@ -223,6 +223,7 @@ var server = http.createServer(function(req, res) {
 					for (var i = 0; i < results.length; i++) {
 						if (results[i].Message.contains(url.query.for)) {
 							res.write('<pre>'+_.escape(results[i].Message)+'</pre>');
+							res.write('<div><a href="/decode?data='+encodeURIComponent(results[i].Message)+'">decode</a></div>')
 							//console.log('found...');
 							//console.log(results[i].Message);
 						}
@@ -247,11 +248,62 @@ var server = http.createServer(function(req, res) {
 		res.write('<body>');
 		res.write('<h1>Diffs for ' + _.escape(url.query.for) + '</h1>');
 		console.log('looking for: '+url.query.for);
+	} else if ('/decode' == req.url.substring(0, '/decode'.length)) {
+		var url = require('url').parse(req.url, true);
+		var u = /^Original URL: (.*)$/m.exec(url.query.data);
+		var p = /^P: StatusCode: (\d{3}) \w+, Version: 1\.1, Headers: \[(.*)\] Body: ([a-zA-Z0-9=\+\/]*)$/m.exec(url.query.data);
+		var s = /^S: StatusCode: (\d{3}) \w+, Version: 1\.1, Headers: \[(.*)\] Body: ([a-zA-Z0-9=\+\/]*)$/m.exec(url.query.data);
+//		var response = new Buffer(url.query, 'base64').toString('utf8');
+		var result = {
+			u: u[1],
+			p: { name: 'primary', status: p[1], headers: splitHeaders(p[2]), body: new Buffer(p[3], 'base64').toString('utf8') },
+			s: { name: 'secondary', status: s[1], headers: splitHeaders(s[2]), body: new Buffer(s[3], 'base64').toString('utf8') }
+		};
+		res.writeHead(200, { 'content-type': 'text/html' });
+		res.write('<!DOCTYPE html>');
+		res.write('<style type="text/css">');
+		res.write('body { background: #000; color: #555; font-family: Helvetica, Arial, san-serif; }');
+		//res.write('pre { border: solid 1px #444; background: #222; color: #999; padding: 10px; }');
+		res.write('pre { font-size: 2em; }');
+		res.write('h1 { text-align: center; }');
+		res.write('a { color: #666; }');
+		res.write('a:visited { color: #444; }');
+		res.write('</style>');
+		res.write('<style type="text/css">pre { position: absolute; top: 2em; left: 0; padding: 20px; } .primary { color: red; }</style>');
+		res.write('<h1>'+result.u+'</h1>');
+		/*res.write('<table>')
+		res.write('<thead><tr><th>Primary</th><th>Secondary</th></tr></thead>')
+		res.write('<tbody>');
+		res.write('<tr>');*/
+		res.writeResult = function(r) {
+			var headers = _.reduce(r.headers, function(memo, h) { return memo + '\r\n' + h; });
+			res.write('<pre class="'+r.name+'">HTTP/1.1 '+r.status+'\r\n'+headers+'\r\n'+_.escape(r.body)+'</pre>');
+		};
+		res.writeResult(result.p)
+		res.writeResult(result.s)
+		//res.write('<pre class="'+d.name+'">Status: '+result.p.status+'\r\n'+_.reduce(result.p.headers, function(memo, h) { return memo + h + '\r\n'})+'\r\n'+_.escape(result.p.body)+'</pre></div>');
+		//res.write('<div><pre>Status: '+result.s.status+'</pre><pre>Headers: '+result.s.headers+'</pre><pre>'+_.escape(result.s.body)+'</pre></div>');
+		/*res.write('</tr>');
+		res.write('</tbody>');
+		res.write('</table>');*/
+		res.end();
+		//res.end(JSON.stringify());
 	} else {
 		res.writeHead(404, { 'content-type': 'text/plain'});
 		res.end('sorry nothing here.');
 	}	
 });
+
+function splitHeaders(headers) {
+	var result = headers.split(',');
+	for (var i = result.length-1; i >= 0; i--) {
+		if (result[i].substring(0,1) == ' ') {
+			result[i-1] += ',' + result[i];
+			result.splice(i, 1);
+		}
+	}
+	return result;
+}
 
 server.listen(port);
 
