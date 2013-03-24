@@ -264,12 +264,16 @@ var server = http.createServer(function(req, res) {
 		res.write('<style type="text/css">');
 		res.write('body { background: #000; color: #555; font-family: Helvetica, Arial, san-serif; }');
 		//res.write('pre { border: solid 1px #444; background: #222; color: #999; padding: 10px; }');
-		res.write('pre { font-size: 2em; }');
+		res.write('pre { font-size: 1em; }');
 		res.write('h1 { text-align: center; }');
+		res.write('h2 { font-size: 1em; }');
 		res.write('a { color: #666; }');
 		res.write('a:visited { color: #444; }');
+		res.write('ins { color: orange; }');
+		res.write('del { color: red; }');
+		res.write('div { font-family: monospace; font-size: 1em; }')
 		res.write('</style>');
-		res.write('<style type="text/css">pre { position: absolute; top: 2em; left: 0; padding: 20px; } .primary { color: red; }</style>');
+		//res.write('<style type="text/css">pre { position: absolute; top: 2em; left: 0; padding: 20px; } .primary { color: red; }</style>');
 
 		res.write('<h1>'+result.u+'</h1>');
 		var formatResult = function(r) {
@@ -280,8 +284,22 @@ var server = http.createServer(function(req, res) {
 			res.write('<pre class="'+r.name+'">'+formatResult(r)+'</pre>');
 		};
 		
+		var diffs = require('diff').diffChars(formatResult(result.p), formatResult(result.s));
+		res.write('<div>');
+		_.each(diffs, function(d) {
+			if (d.added) {
+				res.write('<ins>'+d.value.replace('\r', '<br>')+'</ins>');
+			} else if (d.removed) {
+				res.write('<del>'+d.value.replace('\r', '<br>')+'</del>');
+			} else {
+				res.write(d.value.replace('\r', '<br>'));
+			}
+		});
+		res.write('</div>');
 		//TODO: add in a decent diff algorythm here... maybe? http://kpdecker.github.com/jsdiff/
+		res.write('<h2>Primary:</h2>')
 		res.writeResult(result.p)
+		res.write('<h2>Secondary:</h2>')
 		res.writeResult(result.s)
 		res.end();
 	} else {
