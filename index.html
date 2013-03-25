@@ -3,7 +3,7 @@
 <head>
 <title>Proxy Dashboard</title>
 <style type="text/css">
-body { background: #000; color: #555; font-family: Helvetica, Arial, san-serif; }
+body { background: #000; color: #aaa; font-family: Helvetica, Arial, san-serif; }
 table { margin: 20px auto; }
 h1 { text-align: center; }
 a { color: #666; }
@@ -31,12 +31,12 @@ a:visited { color: #444; }
 			var chartData = google.visualization.arrayToDataTable(JSON.parse(data));
 			var options = {
 				title: 'Requests by Minute (past 24 hours)',
-				titleTextStyle: { color: '#555' },
+				titleTextStyle: { color: '#aaa' },
 				isStacked: true,
 				colors: ['blue', 'red'],
 				backgroundColor: '#000',
-				hAxis: { slantedText: true, slantedTextAngle: 90, textStyle: { color: '#555' } },
-				legend: { textStyle: { color: '#555' } }
+				hAxis: { slantedText: true, slantedTextAngle: 90, textStyle: { color: '#aaa' } },
+				legend: { textStyle: { color: '#aaa' } }
 			};
 			var chart = new google.visualization.AreaChart(document.getElementById('chart_minutes'));
 			chart.draw(chartData, options);
@@ -46,12 +46,12 @@ a:visited { color: #444; }
 			var chartData = google.visualization.arrayToDataTable(JSON.parse(data));
 			var options = {
 				title: 'Requests by Hour (past 30 days)',
-				titleTextStyle: { color: '#555' },
+				titleTextStyle: { color: '#aaa' },
 				isStacked: true,
 				colors: ['blue', 'red'],
 				backgroundColor: '#000',
-				hAxis: { slantedText: true, slantedTextAngle: 90, textStyle: { color: '#555' } },
-				legend: { textStyle: { color: '#555' } }
+				hAxis: { slantedText: true, slantedTextAngle: 90, textStyle: { color: '#aaa' } },
+				legend: { textStyle: { color: '#aaa' } }
 			};
 			var chart = new google.visualization.AreaChart(document.getElementById('chart_hours'));
 			chart.draw(chartData, options);
@@ -61,12 +61,12 @@ a:visited { color: #444; }
 			var chartData = google.visualization.arrayToDataTable(JSON.parse(data));
 			var options = {
 				title: 'Requests by Day (all time)',
-				titleTextStyle: { color: '#555' },
+				titleTextStyle: { color: '#aaa' },
 				isStacked: true,
 				colors: ['blue', 'red'],
 				backgroundColor: '#000',
-				hAxis: { slantedText: true, slantedTextAngle: 90, textStyle: { color: '#555' } },
-				legend: { textStyle: { color: '#555' } }
+				hAxis: { slantedText: true, slantedTextAngle: 90, textStyle: { color: '#aaa' } },
+				legend: { textStyle: { color: '#aaa' } }
 			};
 			var chart = new google.visualization.AreaChart(document.getElementById('chart_days'));
 			chart.draw(chartData, options);

@@ -238,7 +238,7 @@ var server = http.createServer(function(req, res) {
 		res.write('<head>')
 		res.write('<title>Diffs containing "' + _.escape(url.query.for) + '"</title>');
 		res.write('<style type="text/css">');
-		res.write('body { background: #000; color: #555; font-family: Helvetica, Arial, san-serif; }');
+		res.write('body { background: #000; color: #aaa; font-family: Helvetica, Arial, san-serif; }');
 		res.write('pre { border: solid 1px #444; background: #222; color: #999; padding: 10px; }');
 		res.write('h1 { text-align: center; }');
 		res.write('a { color: #666; }');
@@ -263,7 +263,7 @@ var server = http.createServer(function(req, res) {
 			res.writeHead(200, { 'content-type': 'text/html' });
 			res.write('<!DOCTYPE html>');
 			res.write('<style type="text/css">');
-			res.write('body { background: #000; color: #555; font-family: Helvetica, Arial, san-serif; }');
+			res.write('body { background: #000; color: #aaa; font-family: Helvetica, Arial, san-serif; }');
 			//res.write('pre { border: solid 1px #444; background: #222; color: #999; padding: 10px; }');
 			res.write('pre { font-size: 1em; }');
 			res.write('h1 { text-align: center; }');
@@ -277,6 +277,7 @@ var server = http.createServer(function(req, res) {
 			//res.write('<style type="text/css">pre { position: absolute; top: 2em; left: 0; padding: 20px; } .primary { color: red; }</style>');
 
 			res.write('<h1>'+result.u+'</h1>');
+			res.write('<p><ins>additions in orange</ins> - <del>omissions in red</del></p>')
 			var formatResult = function(r) {
 				var headers = _.reduce(r.headers, function(memo, h) { return memo + '\r\n' + h; });
 				return 'HTTP/1.1 '+r.status+'\r\n'+headers+'\r\n'+_.escape(r.body);
