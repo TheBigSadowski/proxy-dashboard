@@ -285,15 +285,17 @@ var server = http.createServer(function(req, res) {
 			res.writeResult = function(r) {
 				res.write('<pre class="'+r.name+'">'+formatResult(r)+'</pre>');
 			};
-
+			var clean = function (d) {
+				return d.value == '\r' ? '[CR]' : d.value == '\n' ? '[lf]' : d.value;
+			};
 			var diffs = require('diff').diffChars(formatResult(result.p), formatResult(result.s));
 			res.write('<pre>');
 			_.each(diffs, function(d) {
 				if (d.added) {
-					res.write('<ins>'+d.value.replace('\r', '[CR]').replace('\n', '[LF]')+'</ins>');
+					res.write('<ins>'+clean(d)+'</ins>');
 					//console.log('-added ['+encodeURIComponent(d.value)+']')
 				} else if (d.removed) {
-					res.write('<del>'+d.value.replace('\r', '[CR]').replace('\n', '[LF]')+'</del>');
+					res.write('<del>'+clean(d)+'</del>');
 					//console.log('-removed ['+d.value+']')
 				} else {
 					res.write(d.value);
