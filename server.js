@@ -1,8 +1,12 @@
 var http = require('http');
+var https = require('https');
 var util = require('util');
 var azure = require('azure');
 var _ = require('underscore');
 var fs = require('fs');
+
+http.globalAgent.maxSockets = 500;
+https.globalAgent.maxSockets = 500;
 
 String.prototype.contains = function (it) { return this.indexOf(it) != -1; };
 
