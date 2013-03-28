@@ -81,7 +81,7 @@ var server = http.createServer(function(req, res) {
 			.and('RowKey ge ?', minRowKey);
 		azure.createTableService().queryEntities(query, function (err, results) {
 			if (err) throw err;
-			var response = _(results).map(function (e) { return [e.RowKey, e.Success, e.Error]; });
+			var response = _(results).map(function (e) { return [e.RowKey, Number(e.Success), Number(e.Error)]; });
 			response = _.union([['Date & Time (UTC)', 'Correct', 'Different']], response);
 			res.writeHead(200, { 'content-type': 'text/javascript' });
 			res.end(JSON.stringify(response));
