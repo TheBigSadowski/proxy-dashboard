@@ -181,18 +181,17 @@ var server = http.createServer(function(req, res) {
 			res.write('<!DOCTYPE html>');
 			res.write('<style type="text/css">');
 			res.write('body { background: #000; color: #aaa; font-family: Helvetica, Arial, san-serif; }');
-			//res.write('pre { border: solid 1px #444; background: #222; color: #999; padding: 10px; }');
 			res.write('pre { font-size: 1em; }');
 			res.write('h1 { text-align: center; }');
 			res.write('h2 { font-size: 1em; }');
-			res.write('a { color: #666; }');
-			res.write('a:visited { color: #444; }');
 			res.write('ins { color: orange; }');
 			res.write('del { color: red; }');
 			res.write('div { font-family: monospace; font-size: 1em; }')
+			res.write('header a { color: #ddd; text-decoration: none; }')
+			res.write('header a:hover { text-decoration: underline; }')
 			res.write('</style>');
-			//res.write('<style type="text/css">pre { position: absolute; top: 2em; left: 0; padding: 20px; } .primary { color: red; }</style>');
-
+			
+			res.write('<header><a href="/">&lt;-- home</a></header>');
 			res.write('<h1>'+result.u+'</h1>');
 			res.write('<p><ins>additions in orange</ins> - <del>omissions in red</del></p>')
 			var formatResult = function(r) {
@@ -210,10 +209,8 @@ var server = http.createServer(function(req, res) {
 			_.each(diffs, function(d) {
 				if (d.added) {
 					res.write('<ins>'+clean(d)+'</ins>');
-					//console.log('-added ['+encodeURIComponent(d.value)+']')
 				} else if (d.removed) {
 					res.write('<del>'+clean(d)+'</del>');
-					//console.log('-removed ['+d.value+']')
 				} else {
 					res.write(d.value);
 				}
