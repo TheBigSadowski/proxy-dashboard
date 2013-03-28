@@ -57,27 +57,15 @@ var runArchiving = function (accounts) {
 		var tableName = 'proxystats';
 		var tableService = azure.createTableService();
 		tableService.createTableIfNotExists(tableName, function(error){
-		    if(error) { throw error; }
-/*
-			var partition;
-			var saveDataPoint = function (val, key, list) {
-				var entity = {
-					PartitionKey: partition,
-					RowKey: key.replace(' ', 'T'),
-					Error: val.error,
-					Success: val.success
-				}
-				tableService.insertOrReplaceEntity(tableName, entity, function(err) {
-					if (err) throw err;
-				});
-			};*/
+		    if(error) throw error;
+
 			var saveDataPoints = function (points) {
 				_(points.data).each(function (val, key) {
 					var entity = {
 						PartitionKey: points.partition,
 						RowKey: key.replace(' ', 'T'),
-						Error: val.error,
-						Success: val.success
+						Error: Number(val.error),
+						Success: Number(val.success)
 					}
 					tableService.insertOrReplaceEntity(tableName, entity, function(err) {
 						if (err) throw err;
@@ -89,15 +77,6 @@ var runArchiving = function (accounts) {
 			saveDataPoints(days);
 			saveDataPoints(hours);
 			saveDataPoints(minutes);
-/*
-			partition = 'by-day';
-			_(days).each(saveDataPoint);
-
-			partition = 'by-hour';
-			_(hours).each(saveDataPoint);
-
-			partition = 'by-minute';
-			_(minutes).each(saveDataPoint);*/
 		});
 	};
 
