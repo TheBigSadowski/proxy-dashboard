@@ -6,11 +6,11 @@ var PagedQuery = function (tableService, query) {
 	var self = this;
 	events.EventEmitter.call(this);
 	
-	var loadData = function(nextPartitionKey, nextRowKey) {
+	var loadNextPage = function(nextPartitionKey, nextRowKey) {
 		var processResponse = function(err, results, raw) {
 			if (err) throw err;
 			if (raw.hasNextPage()) {
-				loadData(raw.nextPartitionKey, raw.nextRowKey);
+				loadNextPage(raw.nextPartitionKey, raw.nextRowKey);
 			} else {
 				self.emit('end');
 			}
@@ -23,7 +23,7 @@ var PagedQuery = function (tableService, query) {
 	};
 	
 	this.execute = function () {
-		loadData();
+		loadNextPage();
 	};
 };
 util.inherits(PagedQuery, events.EventEmitter);
