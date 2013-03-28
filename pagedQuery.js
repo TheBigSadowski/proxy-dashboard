@@ -11,12 +11,13 @@ var PagedQuery = function (tableService, query) {
 			if (err) throw err;
 			if (raw.hasNextPage()) {
 				loadNextPage(raw.nextPartitionKey, raw.nextRowKey);
-			} else {
-				self.emit('end');
 			}
 			_(results).each(function (e) {
 				self.emit('entity', e);
 			});
+			if (!raw.hasNextPage()) {
+				self.emit('end');
+			}
 		};
 
 		tableService.queryEntities(query.whereNextKeys(nextPartitionKey || '', nextRowKey || ''), processResponse);

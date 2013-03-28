@@ -4,10 +4,10 @@ var util = require('util');
 var azure = require('azure');
 var _ = require('underscore');
 var fs = require('fs');
+var PagedQuery = require('./pagedQuery.js');
 
 http.globalAgent.maxSockets = 100;
 https.globalAgent.maxSockets = 100;
-
 
 var port = process.env.PORT || 8888;
 
@@ -20,113 +20,96 @@ for (var i = 0; process.env['AZURE_STORAGE_ACCOUNT_' + i]; i++) {
 		lastPartitionKey: ''
 	});
 }
+var runArchiving = function () {
+	var dates = {};
+	var loadFrom = '';
+	var partitionKeys = {};
+	var days = {};
+	var hours = {};
+	var minutes = {};
+	partitionKeys[days] = 'by-day';
+	partitionKeys[hours] = 'by-hour';
+	partitionKeys[minutes] = 'by-minute';
 
-var dates = {};
-var loadFrom = '';
-var partitionKeys = {};
-var days = {};
-var hours = {};
-var minutes = {};
-partitionKeys[days] = 'by-day';
-partitionKeys[hours] = 'by-hour';
-partitionKeys[minutes] = 'by-minute';
+	var addToStats = function (list, entity, key) {
+		var bucket = list[key] || (list[key] = { error: 0, success: 0 });
+		bucket.error += entity.Error;
+		bucket.success += entity.Success;
+	};
 
-var addToStats = function (list, entity, key) {
-	var bucket = list[key] || (list[key] = { error: 0, success: 0 });
-	bucket.error += entity.Error;
-	bucket.success += entity.Success;
-};
-
-var loadData = function(account) {
-	var tableService = azure.createTableService(account.name, account.key);
-	var processResponse = function(err, results, raw) {
-		if (err) console.log(err);
-		_(results).each(function(entity) {
+	var loadData = function(account) {
+		var tableService = azure.createTableService(account.name, account.key);
+		var query = new PagedQuery(tableService, azure.TableQuery
+			.select()
+			.from('timeData')
+			.where("PartitionKey ge ?", loadFrom)
+		);
+		query.on('entity', function (entity) {
 			addToStats(days, entity, entity.PartitionKey.substring(0, 10));
 			addToStats(hours, entity, entity.PartitionKey.substring(0, 13));
 			addToStats(minutes, entity, entity.PartitionKey);
 		});
-		if (raw.hasNextPage()) {
-			var nextPageQuery = azure.TableQuery
-				.select()
-				.from('timeData')
-				.where("PartitionKey ge ?", loadFrom)
-				.whereNextKeys(raw.nextPartitionKey, raw.nextRowKey);
-			tableService.queryEntities(nextPageQuery, processResponse);
-		} else {
+		query.on('end', function () {
 			account.loaded = true;
 			if (_(accounts).every(function (a) { return a.loaded; })) {
 				saveToStorage();
 			}
-			console.log('Done reading from ' + account.name + ' [' + account.lastPartitionKey + ']');
-		}
+			console.log('Done reading from ' + account.name);
+		});
+		query.execute();
 	};
 
-	console.log(account.name + ' reading from ' + account.lastPartitionKey);
-	var query = azure.TableQuery
-		.select()
-		.where("PartitionKey ge ?", loadFrom)
-		.from('timeData');
-
-	tableService.queryEntities(query, processResponse);
-};
-
-var findDays = function(nextPartitionKey, nextRowKey) {
-	var processResponse = function(err, results, raw) {
-		if (err) { throw err; }
-		_(results).each(function (e) {
-			dates[e.RowKey] = { error: e.Error, success: e.Success };
+	var findDays = function() {
+		var tableService = azure.createTableService();
+		var query = new PagedQuery(tableService, azure.TableQuery
+			.select()
+			.from('proxystats')
+			.where('PartitionKey eq ?', 'by-day')
+		);
+		query.on('entity', function (entity) {
+			loadFrom = loadFrom > entity.RowKey ? loadFrom : entity.RowKey;
 		});
-		if (raw.hasNextPage()) {
-			findDays(raw.nextPartitionKey, raw.nextRowKey);
-		} else {
-			loadFrom = _.chain(dates).map(function (v, k) { return k; }).sortBy(function (k) { return k; }).last().value();
+		query.on('end', function () {
 			console.log('Searching for data from ' + loadFrom);
 			_(accounts).each(loadData);
-		}
+		});
+		query.execute();
 	};
 
-	var query = azure.TableQuery
-		.select()
-		.from('proxystats')
-		.where('PartitionKey eq ?', 'by-day')
-		.whereNextKeys(nextPartitionKey||'', nextRowKey||'');
+	var saveToStorage = function() {
+		var tableName = 'proxystats';
+		var tableService = azure.createTableService();
+		tableService.createTableIfNotExists(tableName, function(error){
+		    if(error) { throw error; }
 
-	azure.createTableService().queryEntities(query, processResponse);
-};
+			var partition;
+			var saveDataPoint = function (val, key, list) {
+				var entity = {
+					PartitionKey: partition,
+					RowKey: key.replace(' ', 'T'),
+					Error: val.error,
+					Success: val.success
+				}
+				tableService.insertOrReplaceEntity(tableName, entity, function(err) {
+					if (err) throw err;
+					console.log(entity.PartitionKey + '|' + entity.RowKey + ' saved { e: '+entity.Error+', s: '+entity.Success+'}');
+				});
+			};
 
-findDays();
+			partition = 'by-day';
+			_(days).each(saveDataPoint);
 
-var saveToStorage = function() {
-	var tableName = 'proxystats';
-	var tableService = azure.createTableService();
-	tableService.createTableIfNotExists(tableName, function(error){
-	    if(error) { console.log(error); return; }
-		
-		var partition;
-		var saveDataPoint = function (val, key, list) {
-			var entity = {
-				PartitionKey: partition,
-				RowKey: key.replace(' ', 'T'),
-				Error: val.error,
-				Success: val.success
-			}
-			tableService.insertOrReplaceEntity(tableName, entity, function(err) {
-				if (err) console.log(err);
-				else console.log(entity.PartitionKey + '|' + entity.RowKey + ' saved { e: '+entity.Error+', s: '+entity.Success+'}');
-			});
-		};
-		
-		partition = 'by-day';
-		_(days).each(saveDataPoint);
-		
-		partition = 'by-hour';
-		_(hours).each(saveDataPoint);
-		
-		partition = 'by-minute';
-		_(minutes).each(saveDataPoint);
-	});
+			partition = 'by-hour';
+			_(hours).each(saveDataPoint);
+
+			partition = 'by-minute';
+			_(minutes).each(saveDataPoint);
+		});
+	};
+
+	findDays();
 };
 
 
 
+runArchiving();
