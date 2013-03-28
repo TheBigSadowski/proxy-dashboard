@@ -14,12 +14,8 @@ a:visited { color: #444; }
 <script type="text/javascript">
 	google.load("visualization", "1", {packages:["corechart"]});
 	google.setOnLoadCallback(loadCharts);
-	setInterval(loadCharts, 10000);
+	setInterval(loadCharts, 60*1000);
 	function loadCharts() {
-		$.get('/progress', function (data) {
-			var p = JSON.parse(data);
-			$('#progress').text(p.percent);
-		});
 		$.get('/urls', function (data) {
 			var top = JSON.parse(data);
 			$('#urls tbody').empty();

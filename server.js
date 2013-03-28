@@ -73,6 +73,21 @@ setInterval(loadNewTopUrls, 10 * 60 * 1000);
 loadNewTopUrls();
 
 var server = http.createServer(function(req, res) {
+	var respondWithStats = function (partitionKey, minRowKey) {
+		var query = azure.TableQuery
+			.select()
+			.from('proxystats')
+			.where('PartitionKey eq ?', partitionKey)
+			.and('RowKey ge ?', minRowKey);
+		azure.createTableService().queryEntities(query, function (err, results) {
+			if (err) throw err;
+			var response = _(results).map(function (e) { return [e.RowKey, e.Success, e.Error]; });
+			response = _.union([['Date & Time (UTC)', 'Correct', 'Different']], response);
+			res.writeHead(200, { 'content-type': 'text/javascript' });
+			res.end(JSON.stringify(response));
+		});
+	};
+
 	if (req.url == '/') {
 		fs.readFile('./index.html', function(err, content) {
 			res.writeHead(200, { 'content-type': 'text/html' });
@@ -80,43 +95,13 @@ var server = http.createServer(function(req, res) {
 		});
 	} else if ('/minutes' == req.url) {
 		var from = new Date(new Date() - 12*60*60*1000).toISOString().substring(0, 13);
-		var query = azure.TableQuery
-			.select()
-			.from('proxystats')
-			.where('PartitionKey eq ?', 'by-minute')
-			.and('RowKey ge ?', from);
-		azure.createTableService().queryEntities(query, function (err, results) {
-			var response = _(results).map(function (e) { return [e.RowKey, e.Success, e.Error]; });
-			response = _.union([['Date & Time (UTC)', 'Correct', 'Different']], response);
-			res.writeHead(200, { 'content-type': 'text/javascript' });
-			res.end(JSON.stringify(response));
-		});
+		respondWithStats('by-minute', from);
 	} else if ('/hours' == req.url) {
 		var from = new Date(new Date() - 7*24*60*60*1000).toISOString().substring(0, 13);
-		var query = azure.TableQuery
-			.select()
-			.from('proxystats')
-			.where('PartitionKey eq ?', 'by-hour')
-			.and('RowKey ge ?', from);
-		azure.createTableService().queryEntities(query, function (err, results) {
-			var response = _(results).map(function (e) { return [e.RowKey, e.Success, e.Error]; });
-			response = _.union([['Date & Time (UTC)', 'Correct', 'Different']], response);
-			res.writeHead(200, { 'content-type': 'text/javascript' });
-			res.end(JSON.stringify(response));
-		});
+		respondWithStats('by-hour', from);
 	} else if ('/days' == req.url) {
 		var from = '';
-		var query = azure.TableQuery
-			.select()
-			.from('proxystats')
-			.where('PartitionKey eq ?', 'by-day')
-			.and('RowKey ge ?', from);
-		azure.createTableService().queryEntities(query, function (err, results) {
-			var response = _(results).map(function (e) { return [e.RowKey, e.Success, e.Error]; });
-			response = _.union([['Date & Time (UTC)', 'Correct', 'Different']], response);
-			res.writeHead(200, { 'content-type': 'text/javascript' });
-			res.end(JSON.stringify(response));
-		});
+		respondWithStats('by-day', from);
 	} else if ('/urls' == req.url) {
 		var response = _.chain(urls)
 			.map(function (value, key) {
