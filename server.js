@@ -80,7 +80,6 @@ var server = http.createServer(function(req, res) {
 		});
 	} else if ('/minutes' == req.url) {
 		var from = new Date(new Date() - 12*60*60*1000).toISOString().substring(0, 13);
-		console.log('searching by minute from ' + from);
 		var query = azure.TableQuery
 			.select()
 			.from('proxystats')
@@ -94,7 +93,6 @@ var server = http.createServer(function(req, res) {
 		});
 	} else if ('/hours' == req.url) {
 		var from = new Date(new Date() - 7*24*60*60*1000).toISOString().substring(0, 13);
-		console.log('reading by hour since ' + from);
 		var query = azure.TableQuery
 			.select()
 			.from('proxystats')
@@ -107,32 +105,18 @@ var server = http.createServer(function(req, res) {
 			res.end(JSON.stringify(response));
 		});
 	} else if ('/days' == req.url) {
+		var from = '';
 		var query = azure.TableQuery
 			.select()
 			.from('proxystats')
-			.where('PartitionKey eq ?', 'by-day');
+			.where('PartitionKey eq ?', 'by-day')
+			.and('RowKey ge ?', from);
 		azure.createTableService().queryEntities(query, function (err, results) {
 			var response = _(results).map(function (e) { return [e.RowKey, e.Success, e.Error]; });
 			response = _.union([['Date & Time (UTC)', 'Correct', 'Different']], response);
 			res.writeHead(200, { 'content-type': 'text/javascript' });
 			res.end(JSON.stringify(response));
 		});
-	} else if (req.url == '/progress') {
-		var response = _.chain(data)
-			.map(function(val, key) {
-				return [
-					key,
-					_.reduce(val, function(memo, v) { return memo + v.success; }, 0),
-					_.reduce(val, function(memo, v) { return memo + v.error; }, 0)
-				];
-			})
-			.sortBy(function (d) { return d[0]; })
-			.last(60)
-			.reduce(function (memo, val) { return { success: memo.success + val[1], error: memo.error + val[2] }; }, { success: 0, error: 0})
-			.value();
-		response.percent = (response.success/(response.success+response.error)*100).toPrecision(5) + '%';
-		res.writeHead(200, { 'content-type': 'text/javascript' });
-		res.end(JSON.stringify(response));
 	} else if ('/urls' == req.url) {
 		var response = _.chain(urls)
 			.map(function (value, key) {

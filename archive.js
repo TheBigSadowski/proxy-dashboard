@@ -4,12 +4,12 @@ var PagedQuery = require('./pagedQuery.js');
 
 var runArchiving = function (accounts) {
 	var loadFrom = '';
-	var days = {};
-	var hours = {};
-	var minutes = {};
+	var days = { partition: 'by-day', data: {} };
+	var hours = { partition: 'by-hour', data: {} };
+	var minutes = { partition: 'by-minute', data: {} };
 
 	var addToStats = function (list, entity, key) {
-		var bucket = list[key] || (list[key] = { error: 0, success: 0 });
+		var bucket = list.data[key] || (list.data[key] = { error: 0, success: 0 });
 		bucket.error += entity.Error;
 		bucket.success += entity.Success;
 	};
@@ -58,7 +58,7 @@ var runArchiving = function (accounts) {
 		var tableService = azure.createTableService();
 		tableService.createTableIfNotExists(tableName, function(error){
 		    if(error) { throw error; }
-
+/*
 			var partition;
 			var saveDataPoint = function (val, key, list) {
 				var entity = {
@@ -69,10 +69,27 @@ var runArchiving = function (accounts) {
 				}
 				tableService.insertOrReplaceEntity(tableName, entity, function(err) {
 					if (err) throw err;
-					console.log(entity.PartitionKey + '|' + entity.RowKey + ' saved { e: '+entity.Error+', s: '+entity.Success+'}');
+				});
+			};*/
+			var saveDataPoints = function (points) {
+				_(points.data).each(function (val, key) {
+					var entity = {
+						PartitionKey: points.partition,
+						RowKey: key.replace(' ', 'T'),
+						Error: val.error,
+						Success: val.success
+					}
+					tableService.insertOrReplaceEntity(tableName, entity, function(err) {
+						if (err) throw err;
+						console.log('  - wrote '+entity.PartitionKey+'|'+entity.RowKey);
+					});
 				});
 			};
-
+			
+			saveDataPoints(days);
+			saveDataPoints(hours);
+			saveDataPoints(minutes);
+/*
 			partition = 'by-day';
 			_(days).each(saveDataPoint);
 
@@ -80,7 +97,7 @@ var runArchiving = function (accounts) {
 			_(hours).each(saveDataPoint);
 
 			partition = 'by-minute';
-			_(minutes).each(saveDataPoint);
+			_(minutes).each(saveDataPoint);*/
 		});
 	};
 
