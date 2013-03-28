@@ -4,6 +4,7 @@ var util = require('util');
 var azure = require('azure');
 var _ = require('underscore');
 var fs = require('fs');
+var PagedQuery = require('./pagedQuery.js');
 
 http.globalAgent.maxSockets = 100;
 https.globalAgent.maxSockets = 100;
@@ -18,24 +19,16 @@ var addToStats = function (list, entity, key) {
 
 var tableService = azure.createTableService();
 
-var loadData = function(nextPartitionKey, nextRowKey) {
-	var processResponse = function(err, results, raw) {
-		if (err) { console.log(err); return; }
-		_(results).each(function (e) {
-			console.log(e.RowKey, e.Success/(e.Success+e.Error)*100 + '% { e: ' + e.Error + ', s: ' + e.Success + ' }');
-		});
-		if (raw.hasNextPage()) {
-			loadData(raw.nextPartitionKey, raw.nextRowKey);
-		}
-	};
-
-	var query = azure.TableQuery
+var byHour = new PagedQuery(tableService, 
+	azure.TableQuery
 		.select()
 		.from('proxystats')
-		.where("PartitionKey eq ?", 'by-hour')
-		.whereNextKeys(nextPartitionKey || '', nextRowKey || '');
-		
-	tableService.queryEntities(query, processResponse);
-};
-
-loadData();
+		.where("PartitionKey eq ?", 'by-minute')
+	);
+byHour.on('entity', function (e) {
+	console.log(e.RowKey, e.Success/(e.Success+e.Error)*100 + '% { e: ' + e.Error + ', s: ' + e.Success + ' }');
+});
+byHour.on('end', function () { 
+	console.log('done');
+});
+byHour.execute();
