@@ -21,6 +21,8 @@ for (var i = 0; process.env['AZURE_STORAGE_ACCOUNT_' + i]; i++) {
 	});
 }
 
+var dates = {};
+var loadFrom = '';
 var partitionKeys = {};
 var days = {};
 var hours = {};
@@ -44,14 +46,11 @@ var loadData = function(account) {
 			addToStats(hours, entity, entity.PartitionKey.substring(0, 13));
 			addToStats(minutes, entity, entity.PartitionKey);
 		});
-		console.log('-------------------------------------------------------')
-		console.log(days);
-		//saveToStorage();
 		if (raw.hasNextPage()) {
 			var nextPageQuery = azure.TableQuery
 				.select()
 				.from('timeData')
-				.where("PartitionKey ge ?", account.lastPartitionKey)
+				.where("PartitionKey ge ?", loadFrom)
 				.whereNextKeys(raw.nextPartitionKey, raw.nextRowKey);
 			tableService.queryEntities(nextPageQuery, processResponse);
 		} else {
@@ -66,13 +65,37 @@ var loadData = function(account) {
 	console.log(account.name + ' reading from ' + account.lastPartitionKey);
 	var query = azure.TableQuery
 		.select()
-		.where("PartitionKey ge ?", account.lastPartitionKey)
+		.where("PartitionKey ge ?", loadFrom)
 		.from('timeData');
 
 	tableService.queryEntities(query, processResponse);
 };
 
-_(accounts).each(loadData);
+var findDays = function(nextPartitionKey, nextRowKey) {
+	var processResponse = function(err, results, raw) {
+		if (err) { throw err; }
+		_(results).each(function (e) {
+			dates[e.RowKey] = { error: e.Error, success: e.Success };
+		});
+		if (raw.hasNextPage()) {
+			findDays(raw.nextPartitionKey, raw.nextRowKey);
+		} else {
+			loadFrom = _.chain(dates).map(function (v, k) { return k; }).sortBy(function (k) { return k; }).last().value();
+			console.log('Searching for data from ' + loadFrom);
+			_(accounts).each(loadData);
+		}
+	};
+
+	var query = azure.TableQuery
+		.select()
+		.from('proxystats')
+		.where('PartitionKey eq ?', 'by-day')
+		.whereNextKeys(nextPartitionKey||'', nextRowKey||'');
+
+	azure.createTableService().queryEntities(query, processResponse);
+};
+
+findDays();
 
 var saveToStorage = function() {
 	var tableName = 'proxystats';
