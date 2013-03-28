@@ -37,20 +37,23 @@ var runArchiving = function (accounts) {
 	};
 
 	var findDays = function() {
-		var tableService = azure.createTableService();
-		var query = new PagedQuery(tableService, azure.TableQuery
-			.select()
-			.from('proxystats')
-			.where('PartitionKey eq ?', 'by-day')
-		);
-		query.on('entity', function (entity) {
-			loadFrom = loadFrom > entity.RowKey ? loadFrom : entity.RowKey;
-		});
-		query.on('end', function () {
-			console.log('Searching for data from ' + loadFrom);
-			_(accounts).each(loadData);
-		});
-		query.execute();
+	    var tableService = azure.createTableService();
+	    tableService.createTableIfNotExists(tableName, function (error) {
+	        if (error) throw error;
+	        var query = new PagedQuery(tableService, azure.TableQuery
+                .select()
+                .from('proxystats')
+                .where('PartitionKey eq ?', 'by-day')
+            );
+	        query.on('entity', function (entity) {
+	            loadFrom = loadFrom > entity.RowKey ? loadFrom : entity.RowKey;
+	        });
+	        query.on('end', function () {
+	            console.log('Searching for data from ' + loadFrom);
+	            _(accounts).each(loadData);
+	        });
+	        query.execute();
+	    });
 	};
 
 	var saveToStorage = function() {
