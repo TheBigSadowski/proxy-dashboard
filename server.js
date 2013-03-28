@@ -4,9 +4,10 @@ var util = require('util');
 var azure = require('azure');
 var _ = require('underscore');
 var fs = require('fs');
+var archive = require('./archive.js');
 
-http.globalAgent.maxSockets = 500;
-https.globalAgent.maxSockets = 500;
+http.globalAgent.maxSockets = 100;
+https.globalAgent.maxSockets = 100;
 
 String.prototype.contains = function (it) { return this.indexOf(it) != -1; };
 
@@ -24,44 +25,8 @@ for (var i = 0; process.env['AZURE_STORAGE_ACCOUNT_' + i]; i++) {
 
 var data = {};
 
-var loadData = function(account) {
-	var tableService = azure.createTableService(account.name, account.key);
-	var processResponse = function(err, results, raw) {
-		if (err) console.log(err);
-		_(results).each(function(entity) {
-			var time = data[entity.PartitionKey] || (data[entity.PartitionKey] = {});
-			time[account.name + '.' + entity.RowKey] = { error: entity.Error, success: entity.Success };
-		});
-		console.log('	' + (account.count += results.length) + ' results added from ' + account.name);
-		if (raw.hasNextPage()) {
-			var nextPageQuery = azure.TableQuery
-				.select()
-				.from('timeData')
-				.where("PartitionKey ge ?", account.lastPartitionKey)
-				.whereNextKeys(raw.nextPartitionKey, raw.nextRowKey);
-			tableService.queryEntities(nextPageQuery, processResponse);
-		} else {
-			if (!account.interval) {
-				account.interval = setInterval(function() { loadData(account); }, 60 * 1000);
-			}
-			account.loaded = true;
-			account.lastPartitionKey = _.last(results).PartitionKey;
-			console.log('Done reading from ' + account.name + ' [' + account.lastPartitionKey + ']');
-		}
-	};
-
-	console.log(account.name + ' reading from ' + account.lastPartitionKey);
-	var query = azure.TableQuery
-		.select()
-		.where("PartitionKey ge ?", account.lastPartitionKey)
-		.from('timeData');
-
-	tableService.queryEntities(query, processResponse);
-};
-
-
-_(accounts).each(loadData);
-
+setInterval(function () { archive(accounts); }, 5 * 60 * 1000);
+archive(accounts);
 
 // loading the top urls that are causing diffs
 var urls = {};
@@ -113,66 +78,45 @@ var server = http.createServer(function(req, res) {
 			res.writeHead(200, { 'content-type': 'text/html' });
 			res.end(content);
 		});
-	} else if (req.url == '/minutes') {
-		var response = _.chain(data)
-			.map(function(val, key) {
-				return [
-					key,
-					_.reduce(val, function(memo, v) { return memo + v.success; }, 0),
-					_.reduce(val, function(memo, v) { return memo + v.error; }, 0)
-				];
-			})
-			.sortBy(function(val) { return val[0]; })
-			.last(60 * 24)
-			.value();
-		response = _.union([['Date & Time (UTC)', 'Correct', 'Different']], response);
-		res.writeHead(200, { 'content-type': 'text/javascript' });
-		res.end(JSON.stringify(response));
-	} else if (req.url == '/hours') {
-		var response = _.chain(data)
-			.map(function(val, key) {
-				return [
-					key,
-					_.reduce(val, function(memo, v) { return memo + v.success; }, 0),
-					_.reduce(val, function(memo, v) { return memo + v.error; }, 0)
-				];
-			})
-			.groupBy(function(d) { return d[0].substring(0, 13); })
-			.map(function(v, y) { 
-				return [
-					y,
-					_.reduce(v, function(memo, val) { return memo + val[1]; }, 0),
-					_.reduce(v, function(memo, val) { return memo + val[2]; }, 0)
-				];
-			})
-			.sortBy(function(val) { return val[0]; })
-			.last(24 * 30)
-			.value();
-		response = _.union([['Date & Time (UTC)', 'Correct', 'Different']], response);
-		res.writeHead(200, { 'content-type': 'text/javascript' });
-		res.end(JSON.stringify(response));
-	} else if (req.url == '/days') {
-		var response = _.chain(data)
-			.map(function(val, key) {
-				return [
-					key,
-					_.reduce(val, function(memo, v) { return memo + v.success; }, 0),
-					_.reduce(val, function(memo, v) { return memo + v.error; }, 0)
-				];
-			})
-			.groupBy(function(d) { return d[0].substring(0, 10); })
-			.map(function(v, y) { 
-				return [
-					y,
-					_.reduce(v, function(memo, val) { return memo + val[1]; }, 0),
-					_.reduce(v, function(memo, val) { return memo + val[2]; }, 0)
-				];
-			})
-			.sortBy(function(val) { return val[0]; })
-			.value();
-		response = _.union([['Date & Time (UTC)', 'Correct', 'Different']], response);
-		res.writeHead(200, { 'content-type': 'text/javascript' });
-		res.end(JSON.stringify(response));
+	} else if ('/minutes' == req.url) {
+		var from = new Date(new Date() - 12*60*60*1000).toISOString().substring(0, 13);
+		console.log('searching by minute from ' + from);
+		var query = azure.TableQuery
+			.select()
+			.from('proxystats')
+			.where('PartitionKey eq ?', 'by-minute')
+			.and('RowKey ge ?', from);
+		azure.createTableService().queryEntities(query, function (err, results) {
+			var response = _(results).map(function (e) { return [e.RowKey, e.Success, e.Error]; });
+			response = _.union([['Date & Time (UTC)', 'Correct', 'Different']], response);
+			res.writeHead(200, { 'content-type': 'text/javascript' });
+			res.end(JSON.stringify(response));
+		});
+	} else if ('/hours' == req.url) {
+		var from = new Date(new Date() - 7*24*60*60*1000).toISOString().substring(0, 13);
+		console.log('reading by hour since ' + from);
+		var query = azure.TableQuery
+			.select()
+			.from('proxystats')
+			.where('PartitionKey eq ?', 'by-hour')
+			.and('RowKey ge ?', from);
+		azure.createTableService().queryEntities(query, function (err, results) {
+			var response = _(results).map(function (e) { return [e.RowKey, e.Success, e.Error]; });
+			response = _.union([['Date & Time (UTC)', 'Correct', 'Different']], response);
+			res.writeHead(200, { 'content-type': 'text/javascript' });
+			res.end(JSON.stringify(response));
+		});
+	} else if ('/days' == req.url) {
+		var query = azure.TableQuery
+			.select()
+			.from('proxystats')
+			.where('PartitionKey eq ?', 'by-day');
+		azure.createTableService().queryEntities(query, function (err, results) {
+			var response = _(results).map(function (e) { return [e.RowKey, e.Success, e.Error]; });
+			response = _.union([['Date & Time (UTC)', 'Correct', 'Different']], response);
+			res.writeHead(200, { 'content-type': 'text/javascript' });
+			res.end(JSON.stringify(response));
+		});
 	} else if (req.url == '/progress') {
 		var response = _.chain(data)
 			.map(function(val, key) {

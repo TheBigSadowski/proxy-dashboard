@@ -33,7 +33,7 @@ a:visited { color: #444; }
 				title: 'Requests by Minute (past 24 hours)',
 				titleTextStyle: { color: '#aaa' },
 				isStacked: true,
-				colors: ['blue', 'red'],
+				colors: ['green', 'grey'],
 				backgroundColor: '#000',
 				hAxis: { slantedText: true, slantedTextAngle: 90, textStyle: { color: '#aaa' } },
 				legend: { textStyle: { color: '#aaa' } }
@@ -45,10 +45,10 @@ a:visited { color: #444; }
 		$.get('/hours', function(data) {
 			var chartData = google.visualization.arrayToDataTable(JSON.parse(data));
 			var options = {
-				title: 'Requests by Hour (past 30 days)',
+				title: 'Requests by Hour (past 7 days)',
 				titleTextStyle: { color: '#aaa' },
 				isStacked: true,
-				colors: ['blue', 'red'],
+				colors: ['green', 'grey'],
 				backgroundColor: '#000',
 				hAxis: { slantedText: true, slantedTextAngle: 90, textStyle: { color: '#aaa' } },
 				legend: { textStyle: { color: '#aaa' } }
@@ -63,7 +63,7 @@ a:visited { color: #444; }
 				title: 'Requests by Day (all time)',
 				titleTextStyle: { color: '#aaa' },
 				isStacked: true,
-				colors: ['blue', 'red'],
+				colors: ['green', 'grey'],
 				backgroundColor: '#000',
 				hAxis: { slantedText: true, slantedTextAngle: 90, textStyle: { color: '#aaa' } },
 				legend: { textStyle: { color: '#aaa' } }

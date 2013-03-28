@@ -1,35 +1,12 @@
-var http = require('http');
-var https = require('https');
-var util = require('util');
 var azure = require('azure');
 var _ = require('underscore');
-var fs = require('fs');
 var PagedQuery = require('./pagedQuery.js');
 
-http.globalAgent.maxSockets = 100;
-https.globalAgent.maxSockets = 100;
-
-var port = process.env.PORT || 8888;
-
-var accounts = [];
-for (var i = 0; process.env['AZURE_STORAGE_ACCOUNT_' + i]; i++) {
-	accounts.push({
-		name: process.env['AZURE_STORAGE_ACCOUNT_' + i],
-		key: process.env['AZURE_STORAGE_ACCESS_KEY_' + i],
-		count: 0,
-		lastPartitionKey: ''
-	});
-}
-var runArchiving = function () {
-	var dates = {};
+var runArchiving = function (accounts) {
 	var loadFrom = '';
-	var partitionKeys = {};
 	var days = {};
 	var hours = {};
 	var minutes = {};
-	partitionKeys[days] = 'by-day';
-	partitionKeys[hours] = 'by-hour';
-	partitionKeys[minutes] = 'by-minute';
 
 	var addToStats = function (list, entity, key) {
 		var bucket = list[key] || (list[key] = { error: 0, success: 0 });
@@ -110,6 +87,4 @@ var runArchiving = function () {
 	findDays();
 };
 
-
-
-runArchiving();
+module.exports = runArchiving;
