@@ -15,6 +15,7 @@ var PagedQuery = function (tableService, query) {
 			_(results).each(function (e) {
 				self.emit('entity', e);
 			});
+			self.emit('page', results);
 			if (!raw.hasNextPage()) {
 				self.emit('end');
 			}
