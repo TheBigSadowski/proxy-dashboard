@@ -3,7 +3,8 @@ var _ = require('underscore');
 var PagedQuery = require('./pagedQuery.js');
 
 var runArchiving = function (accounts) {
-	var loadFrom = '';
+    var tableName = 'proxystats';
+    var loadFrom = '';
 	var days = { partition: 'by-day', data: {} };
 	var hours = { partition: 'by-hour', data: {} };
 	var minutes = { partition: 'by-minute', data: {} };
@@ -57,7 +58,6 @@ var runArchiving = function (accounts) {
 	};
 
 	var saveToStorage = function() {
-		var tableName = 'proxystats';
 		var tableService = azure.createTableService();
 		tableService.createTableIfNotExists(tableName, function(error){
 		    if(error) throw error;
