@@ -51,11 +51,12 @@ _.each(accounts, function (account) {
 				account.findTopUrls(raw.nextPartitionKey, raw.nextRowKey);
 			}
 			_.each(results, function (result) {
-				var match = /Original URL: (.*)\n/.exec(result.Message);
-				if (!match) return;
-				var url = match[1];
+				if (!result[0] == '{') return; // probably not JSON
+				var data = JSON.parse(result.Message);
+				var url = data.RequestURL;
 				urls[url] = (urls[url] || 0) + 1;
 				urlCount++;
+				console.log(url);
 			});
 		});
 	};
