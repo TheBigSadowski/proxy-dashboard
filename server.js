@@ -69,17 +69,32 @@ var loadNewTopUrls = function() {
 	});
 };
 
+
+var queryStats = function (partitionKey, minRowKey, callback) {
+	var query = azure.TableQuery
+		.select()
+		.from('proxystats')
+		.where('PartitionKey eq ?', partitionKey)
+		.and('RowKey ge ?', minRowKey);
+	azure.createTableService().queryEntities(query, callback);
+};
+var stats = { e: 0, s: 0 };
+var updateOverallStats = function () {
+	var from = new Date(new Date() - 3*60*60*1000).toISOString().substring(0, 13);
+	queryStats('by-hour', from, function (err, results) {
+		if (err) throw err;
+		var d = _.chain(results).last(2).first().value();
+		stats = { e: Number(d.Error), s: Number(d.Success) };
+	});
+};
 setInterval(loadNewTopUrls, 10 * 60 * 1000);
 loadNewTopUrls();
+setInterval(updateOverallStats, 10 * 60 * 1000);
+updateOverallStats();
 
 var server = http.createServer(function(req, res) {
 	var respondWithStats = function (partitionKey, minRowKey) {
-		var query = azure.TableQuery
-			.select()
-			.from('proxystats')
-			.where('PartitionKey eq ?', partitionKey)
-			.and('RowKey ge ?', minRowKey);
-		azure.createTableService().queryEntities(query, function (err, results) {
+		queryStats(partitionKey, minRowKey, function (err, results) {
 			if (err) throw err;
 			var response = _(results).map(function (e) { return [e.RowKey, Number(e.Success), Number(e.Error)]; });
 			response = _.union([['Date & Time (UTC)', 'Correct', 'Different']], response);
@@ -89,9 +104,12 @@ var server = http.createServer(function(req, res) {
 	};
 
 	if (req.url == '/') {
-		fs.readFile('./index.html', function(err, content) {
+		fs.readFile('./index.html', { encoding: 'utf8' }, function(err, content) {
 			res.writeHead(200, { 'content-type': 'text/html' });
-			res.end(content);
+			var host = req.headers['host'];
+			var percent = (stats.e+stats.s) == 0 ? 0 : Math.round(stats.s/(stats.e+stats.s)*100);
+			var graph = 'https://chart.googleapis.com/chart?cht=p&chds=a&chs=200x200&chco=00FF00,333333&chd=t:'+stats.s+','+stats.e;
+			res.end(content.toString().replace(/{match-percent}/g, percent).replace(/{og-image}/g, graph).replace(/{host}/g, host));
 		});
 	} else if ('/minutes' == req.url) {
 		var from = new Date(new Date() - 12*60*60*1000).toISOString().substring(0, 13);
@@ -102,6 +120,22 @@ var server = http.createServer(function(req, res) {
 	} else if ('/days' == req.url) {
 		var from = '';
 		respondWithStats('by-day', from);
+	} else if ('/pie' == req.url) {
+		var from = new Date(new Date() - 3*60*60*1000).toISOString().substring(0, 13);
+		var partitionKey = 'by-hour';
+		var query = azure.TableQuery
+			.select()
+			.from('proxystats')
+			.where('PartitionKey eq ?', partitionKey)
+			.and('RowKey ge ?', from);
+		azure.createTableService().queryEntities(query, function (err, results) {
+			if (err) throw err;
+			var d = _.chain(results).last(2).first().value();
+			res.writeHead(302, {
+			  'Location': 'https://chart.googleapis.com/chart?cht=p&chds=a&chs=200x200&chco=00FF00,333333&chd=t:'+Number(d.Success)+','+Number(d.Error)
+			});
+			res.end();
+		});
 	} else if ('/urls' == req.url) {
 		var response = _.chain(urls)
 			.map(function (value, key) {

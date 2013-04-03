@@ -1,7 +1,11 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Proxy Dashboard</title>
+<title>Proxy Dashboard ({match-percent}% match)</title>
+<meta property="og:type"            content="website" /> 
+<meta property="og:url"             content="http://{host}/" /> 
+<meta property="og:title"           content="Proxy Dashboard ({match-percent}% match)" /> 
+<meta property="og:image"           content="{og-image}" /> 
 <style type="text/css">
 body { background: #000; color: #aaa; font-family: Helvetica, Arial, san-serif; margin: 0; padding-top: 2em; }
 table { margin: 20px auto; }
@@ -107,7 +111,7 @@ header { position: fixed; top: 0; border-bottom: solid 1px #333; z-index: 1000; 
 </script>
 </head>
 <body>
-<header>Mode: <button id="percentMode" class="active">Percent</button> <button id="absoluteMode">Absolute</button></header>
+<header>graph mode: <button id="percentMode" class="active">Percent</button> <button id="absoluteMode">Absolute</button></header>
 <!--<h1><span id="progress">??%</span> Complete</h1>-->
 <table id="urls">
 	<thead><tr><th>Rank</th><th>Diffs</th><th>Top Problem URLs (last 5 minutes)</th></tr></thead>
