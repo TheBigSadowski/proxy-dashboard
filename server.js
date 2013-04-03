@@ -56,7 +56,6 @@ _.each(accounts, function (account) {
 				var url = data.RequestURL;
 				urls[url] = (urls[url] || 0) + 1;
 				urlCount++;
-				console.log(url);
 			});
 		});
 	};
@@ -126,7 +125,7 @@ var server = http.createServer(function(req, res) {
 				var query = azure.TableQuery
 					.select('PartitionKey', 'RowKey', 'Message')
 					.from('WADLogsTable')
-					.whereNextKeys(nextPartitionKey || getFirstKey(5), nextRowKey || '');
+					.whereNextKeys(nextPartitionKey || getFirstKey(7), nextRowKey || '');
 				
 				//console.log('  searching for ['+url.query.for+'] on '+account.name+' > ' + nextPartitionKey);
 				account.tableService.queryEntities(query, function (err, results, raw) {
@@ -140,10 +139,9 @@ var server = http.createServer(function(req, res) {
 					}
 					for (var i = 0; i < results.length; i++) {
 						if (results[i].Message.contains(url.query.for)) {
-							res.write('<pre>'+_.escape(results[i].Message)+'</pre>');
+							var data = JSON.parse(results[i].Message);
+							res.write('<pre>'+_.escape(JSON.stringify(data, null, 4))+'</pre>');
 							res.write('<div><a href="/decode?account='+account.name+'&partition='+results[i].PartitionKey+'&row='+results[i].RowKey+'">decode</a></div>')
-							//console.log('found...');
-							//console.log(results[i].Message);
 						}
 					}
 				});
