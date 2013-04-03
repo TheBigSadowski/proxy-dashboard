@@ -168,13 +168,24 @@ var server = http.createServer(function(req, res) {
 		var url = require('url').parse(req.url, true);
 		var account = _.findWhere(accounts, { name: url.query.account });
 		account.tableService.queryEntity('WADLogsTable', url.query.partition, url.query.row, function (err, entity) {
-			var u = /^Original URL: (.*)$/m.exec(entity.Message);
-			var p = /^P: StatusCode: (\d{3}) \w+, Version: 1\.1, Headers: \[(.*)\] Body: ([a-zA-Z0-9=\+\/]*)$/m.exec(entity.Message);
-			var s = /^S: StatusCode: (\d{3}) \w+, Version: 1\.1, Headers: \[(.*)\] Body: ([a-zA-Z0-9=\+\/]*)$/m.exec(entity.Message);
+			var data = JSON.parse(entity.Message);
+			//var u = /^Original URL: (.*)$/m.exec(entity.Message);
+			//var p = /^P: StatusCode: (\d{3}) \w+, Version: 1\.1, Headers: \[(.*)\] Body: ([a-zA-Z0-9=\+\/]*)$/m.exec(entity.Message);
+			//var s = /^S: StatusCode: (\d{3}) \w+, Version: 1\.1, Headers: \[(.*)\] Body: ([a-zA-Z0-9=\+\/]*)$/m.exec(entity.Message);
+			var toResponse = function (raw, name) {
+				return {
+					name: 'primary',
+					status: raw.StatusCode,
+					version: raw.ProtocolVersion,
+					headers: _.chain(raw.Headers).map(function (v, k) { return k+': '+v; }).sortBy(function (h) { return h; }).value(),
+					body: new Buffer(raw.Body, 'base64').toString('utf8')
+				};
+			};
 			var result = {
-				u: u[1],
-				p: { name: 'primary', status: p[1], headers: splitHeaders(p[2]), body: new Buffer(p[3], 'base64').toString('utf8') },
-				s: { name: 'secondary', status: s[1], headers: splitHeaders(s[2]), body: new Buffer(s[3], 'base64').toString('utf8') }
+				u: data.RequestURL,
+				//r: { name: 'request', }
+				p: toResponse(data.PrimaryResponse, 'primary'),
+				s: toResponse(data.SecondaryResponse, 'secondary'),
 			};
 			res.writeHead(200, { 'content-type': 'text/html' });
 			res.write('<!DOCTYPE html>');
@@ -195,7 +206,7 @@ var server = http.createServer(function(req, res) {
 			res.write('<p><ins>additions in orange</ins> - <del>omissions in red</del></p>')
 			var formatResult = function(r) {
 				var headers = _.reduce(r.headers, function(memo, h) { return memo + '\r\n' + h; });
-				return 'HTTP/1.1 '+r.status+'\r\n'+headers+'\r\n'+_.escape(r.body);
+				return 'HTTP/'+r.version+' '+r.status+'\r\n'+headers+'\r\n'+_.escape(r.body);
 			};
 			res.writeResult = function(r) {
 				res.write('<pre class="'+r.name+'">'+formatResult(r)+'</pre>');
