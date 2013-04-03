@@ -3,18 +3,50 @@
 <head>
 <title>Proxy Dashboard</title>
 <style type="text/css">
-body { background: #000; color: #aaa; font-family: Helvetica, Arial, san-serif; }
+body { background: #000; color: #aaa; font-family: Helvetica, Arial, san-serif; margin: 0; padding-top: 2em; }
 table { margin: 20px auto; }
 h1 { text-align: center; }
 a { color: #666; }
 a:visited { color: #444; }
+button { border: solid 1px #666; background: #333; color: #666; cursor: pointer; }
+button:hover { border: solid 1px green; background: #333; color: green; }
+button.active { border: solid 1px green; background: #333; color: green; }
+header { position: fixed; top: 0; border-bottom: solid 1px #333; z-index: 1000; margin: 0; padding: 5px; width: 100%; background: #111; }
 </style>
 <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.4.4/underscore-min.js"></script>
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
 <script type="text/javascript">
 	google.load("visualization", "1", {packages:["corechart"]});
-	google.setOnLoadCallback(loadCharts);
+	var percentMode = true;
+	var init = function() {
+		$('#percentMode').on('click', function () {
+			if (percentMode) return;
+			percentMode = true;
+			$(this).addClass('active');
+			$('#absoluteMode').removeClass('active');
+			loadCharts();
+		});
+		$('#absoluteMode').on('click', function () {
+			if (!percentMode) return;
+			percentMode = false;
+			$(this).addClass('active');
+			$('#percentMode').removeClass('active');
+			loadCharts();
+		});
+		loadCharts();
+	};
+	google.setOnLoadCallback(init);
 	setInterval(loadCharts, 60*1000);
+	var toPercent = function (data) {
+		return _(data).map(function (row) { 
+			return [ 
+				row[0], 
+				_.isNumber(row[1]) ? row[1] / (row[1] + row[2]) * 100 : row[1], 
+				_.isNumber(row[1]) ? 100 : row[2] 
+			];
+		});
+	};
 	function loadCharts() {
 		$.get('/urls', function (data) {
 			var top = JSON.parse(data);
@@ -24,11 +56,12 @@ a:visited { color: #444; }
 			})
 		});
 		$.get('/minutes', function (data) {
-			var chartData = google.visualization.arrayToDataTable(JSON.parse(data));
+			var raw = JSON.parse(data)
+			var chartData = google.visualization.arrayToDataTable(percentMode ? toPercent(raw) : raw);
 			var options = {
 				title: 'Requests by Minute (past 24 hours)',
 				titleTextStyle: { color: '#aaa' },
-				isStacked: true,
+				isStacked: !percentMode,
 				colors: ['green', 'grey'],
 				backgroundColor: '#000',
 				hAxis: { slantedText: true, slantedTextAngle: 90, textStyle: { color: '#aaa' } },
@@ -39,11 +72,12 @@ a:visited { color: #444; }
 		});
 
 		$.get('/hours', function(data) {
-			var chartData = google.visualization.arrayToDataTable(JSON.parse(data));
+			var raw = JSON.parse(data)
+			var chartData = google.visualization.arrayToDataTable(percentMode ? toPercent(raw) : raw);
 			var options = {
 				title: 'Requests by Hour (past 7 days)',
 				titleTextStyle: { color: '#aaa' },
-				isStacked: true,
+				isStacked: !percentMode,
 				colors: ['green', 'grey'],
 				backgroundColor: '#000',
 				hAxis: { slantedText: true, slantedTextAngle: 90, textStyle: { color: '#aaa' } },
@@ -54,11 +88,12 @@ a:visited { color: #444; }
 		});
 
 		$.get('/days', function(data) {
-			var chartData = google.visualization.arrayToDataTable(JSON.parse(data));
+			var raw = JSON.parse(data)
+			var chartData = google.visualization.arrayToDataTable(percentMode ? toPercent(raw) : raw);
 			var options = {
 				title: 'Requests by Day (all time)',
 				titleTextStyle: { color: '#aaa' },
-				isStacked: true,
+				isStacked: !percentMode,
 				colors: ['green', 'grey'],
 				backgroundColor: '#000',
 				hAxis: { slantedText: true, slantedTextAngle: 90, textStyle: { color: '#aaa' } },
@@ -72,6 +107,7 @@ a:visited { color: #444; }
 </script>
 </head>
 <body>
+<header>Mode: <button id="percentMode" class="active">Percent</button> <button id="absoluteMode">Absolute</button></header>
 <!--<h1><span id="progress">??%</span> Complete</h1>-->
 <table id="urls">
 	<thead><tr><th>Rank</th><th>Diffs</th><th>Top Problem URLs (last 5 minutes)</th></tr></thead>
