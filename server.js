@@ -169,21 +169,25 @@ var server = http.createServer(function(req, res) {
 		var account = _.findWhere(accounts, { name: url.query.account });
 		account.tableService.queryEntity('WADLogsTable', url.query.partition, url.query.row, function (err, entity) {
 			var data = JSON.parse(entity.Message);
-			//var u = /^Original URL: (.*)$/m.exec(entity.Message);
-			//var p = /^P: StatusCode: (\d{3}) \w+, Version: 1\.1, Headers: \[(.*)\] Body: ([a-zA-Z0-9=\+\/]*)$/m.exec(entity.Message);
-			//var s = /^S: StatusCode: (\d{3}) \w+, Version: 1\.1, Headers: \[(.*)\] Body: ([a-zA-Z0-9=\+\/]*)$/m.exec(entity.Message);
+			var cleanHeaders = function (headers) {
+				return _.chain(headers)
+					.map(function (v, k) { return k+': '+v; })
+					.sortBy(function (h) { return h; })
+					.value();
+			};
 			var toResponse = function (raw, name) {
 				return {
 					name: 'primary',
 					status: raw.StatusCode,
 					version: raw.ProtocolVersion,
-					headers: _.chain(raw.Headers).map(function (v, k) { return k+': '+v; }).sortBy(function (h) { return h; }).value(),
+					headers: cleanHeaders(raw.Headers),
 					body: new Buffer(raw.Body, 'base64').toString('utf8')
 				};
 			};
+			var path = data.RequestURL.substring(data.RequestURL.indexOf(data.Request.Path));
 			var result = {
 				u: data.RequestURL,
-				//r: { name: 'request', }
+				r: { name: 'request', version: '1.1', method: data.Request.Method, headers: cleanHeaders(data.Request.Headers), body: data.Request.Body, path: path },
 				p: toResponse(data.PrimaryResponse, 'primary'),
 				s: toResponse(data.SecondaryResponse, 'secondary'),
 			};
@@ -204,17 +208,21 @@ var server = http.createServer(function(req, res) {
 			res.write('<header><a href="/">&lt;-- home</a></header>');
 			res.write('<h1>'+result.u+'</h1>');
 			res.write('<p><ins>additions in orange</ins> - <del>omissions in red</del></p>')
-			var formatResult = function(r) {
+			var formatRequest = function(r) {
+				var headers = _.reduce(r.headers, function(memo, h) { return memo + '\r\n' + h; });
+				return r.method+' '+r.path+' HTTP/'+r.version+'\r\n'+headers+'\r\n'+_.escape(r.body);
+			};
+			var formatResponse = function(r) {
 				var headers = _.reduce(r.headers, function(memo, h) { return memo + '\r\n' + h; });
 				return 'HTTP/'+r.version+' '+r.status+'\r\n'+headers+'\r\n'+_.escape(r.body);
 			};
-			res.writeResult = function(r) {
-				res.write('<pre class="'+r.name+'">'+formatResult(r)+'</pre>');
+			res.writeResult = function(r, format) {
+				res.write('<pre class="'+r.name+'">'+format(r)+'</pre>');
 			};
 			var clean = function (d) {
 				return d.value == '\r' ? '[CR]' : d.value == '\n' ? '[lf]' : d.value;
 			};
-			var diffs = require('diff').diffChars(formatResult(result.p), formatResult(result.s));
+			var diffs = require('diff').diffChars(formatResponse(result.p), formatResponse(result.s));
 			res.write('<pre>');
 			_.each(diffs, function(d) {
 				if (d.added) {
@@ -226,10 +234,12 @@ var server = http.createServer(function(req, res) {
 				}
 			});
 			res.write('</pre>');
+			res.write('<h2>Request:</h2>')
+			res.writeResult(result.r, formatRequest)
 			res.write('<h2>Primary:</h2>')
-			res.writeResult(result.p)
+			res.writeResult(result.p, formatResponse)
 			res.write('<h2>Secondary:</h2>')
-			res.writeResult(result.s)
+			res.writeResult(result.s, formatResponse)
 			res.end();
 		});
 	} else {
