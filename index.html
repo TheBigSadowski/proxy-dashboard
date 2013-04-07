@@ -56,7 +56,7 @@ header { position: fixed; top: 0; border-bottom: solid 1px #333; z-index: 1000; 
 			var top = JSON.parse(data);
 			$('#urls tbody').empty();
 			$(top).each(function(index, element){  
-			     $('#urls tbody').append('<tr><td>'+(index+1)+'</td><td>'+element[1]+' ('+element[2]+'%)</td><td><a href="/search?for='+encodeURIComponent(element[0])+'">'+element[0]+'</a></td></tr>');       
+			     $('#urls tbody').append('<tr><td>'+(index+1)+'</td><td>'+element[1]+' ('+element[2]+'%)</td><td><a href="/search?for='+encodeURIComponent(element[0])+'">'+_.escape(element[0])+'</a></td></tr>');       
 			})
 		});
 		$.get('/minutes', function (data) {
