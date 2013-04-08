@@ -83,6 +83,7 @@ var updateOverallStats = function () {
 	var from = new Date(new Date() - 3*60*60*1000).toISOString().substring(0, 13);
 	queryStats('by-hour', from, function (err, results) {
 		if (err) throw err;
+		if (results.length < 2) return;
 		var d = _.chain(results).last(2).first().value();
 		stats = { e: Number(d.Error), s: Number(d.Success) };
 	});
