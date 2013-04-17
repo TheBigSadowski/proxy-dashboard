@@ -255,7 +255,7 @@ var server = http.createServer(function(req, res) {
 				res.write('<pre class="'+r.name+'">'+format(r)+'</pre>');
 			};
 			var clean = function (d) {
-				return d.value == '\r' ? '[CR]' : d.value == '\n' ? '[lf]' : _.escape(d.value);
+				return d.value == '\r' ? '[CR]' : d.value == '\n' ? '[lf]' : d.value;
 			};
 			var diffs = require('diff').diffChars(formatResponse(result.p), formatResponse(result.s));
 			res.write('<pre>');
@@ -265,7 +265,7 @@ var server = http.createServer(function(req, res) {
 				} else if (d.removed) {
 					res.write('<del>'+clean(d)+'</del>');
 				} else {
-					res.write(_.escape(d.value));
+					res.write(d.value);
 				}
 			});
 			res.write('</pre>');
