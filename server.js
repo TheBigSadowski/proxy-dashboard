@@ -44,14 +44,14 @@ _.each(accounts, function (account) {
 		var query = azure.TableQuery
 			.select('Message')
 			.from('WADLogsTable')
-			.whereNextKeys(nextPartitionKey || getFirstKey(), nextRowKey || '');
+			.whereNextKeys(nextPartitionKey || getFirstKey(10), nextRowKey || '');
 
 		account.tableService.queryEntities(query, function (err, results, raw) {
 			if (raw.hasNextPage()) {
 				account.findTopUrls(raw.nextPartitionKey, raw.nextRowKey);
 			}
 			_.each(results, function (result) {
-				if (!result[0] == '{') return; // probably not JSON
+				if (result[0] != '{') return; // probably not JSON
 				var data = JSON.parse(result.Message);
 				var url = data.RequestURL;
 				urls[url] = (urls[url] || 0) + 1;
@@ -160,7 +160,7 @@ var server = http.createServer(function(req, res) {
 				var query = azure.TableQuery
 					.select('PartitionKey', 'RowKey', 'Message')
 					.from('WADLogsTable')
-					.whereNextKeys(nextPartitionKey || getFirstKey(7), nextRowKey || '');
+					.whereNextKeys(nextPartitionKey || getFirstKey(20), nextRowKey || '');
 				
 				//console.log('  searching for ['+url.query.for+'] on '+account.name+' > ' + nextPartitionKey);
 				account.tableService.queryEntities(query, function (err, results, raw) {
