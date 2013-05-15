@@ -51,7 +51,8 @@ _.each(accounts, function (account) {
 				account.findTopUrls(raw.nextPartitionKey, raw.nextRowKey);
 			}
 			_.each(results, function (result) {
-				if (result[0] != '{') return; // probably not JSON
+				//console.log(result);
+				if (result.Message[0] != '{') return; // probably not JSON
 				var data = JSON.parse(result.Message);
 				var url = data.RequestURL;
 				urls[url] = (urls[url] || 0) + 1;
