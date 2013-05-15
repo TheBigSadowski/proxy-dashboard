@@ -16,6 +16,7 @@ button { border: solid 1px #666; background: #333; color: #666; cursor: pointer;
 button:hover { border: solid 1px green; background: #333; color: green; }
 button.active { border: solid 1px green; background: #333; color: green; }
 header { position: fixed; top: 0; border-bottom: solid 1px #333; z-index: 1000; margin: 0; padding: 5px; width: 100%; background: #111; }
+header form { float: right; padding-right: 20px; }
 </style>
 <script type="text/javascript" src="https://www.google.com/jsapi"></script>
 <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.4.4/underscore-min.js"></script>
@@ -111,7 +112,11 @@ header { position: fixed; top: 0; border-bottom: solid 1px #333; z-index: 1000; 
 </script>
 </head>
 <body>
-<header>graph mode: <button id="percentMode" class="active">Percent</button> <button id="absoluteMode">Absolute</button></header>
+<header>graph mode: <button id="percentMode" class="active">Percent</button> <button id="absoluteMode">Absolute</button>
+	<form method="GET" action="/search">
+		search: <input type="text" name="for">
+	</form>
+</header>
 <!--<h1><span id="progress">??%</span> Complete</h1>-->
 <table id="urls">
 	<thead><tr><th>Rank</th><th>Diffs</th><th>Top Problem URLs (last 5 minutes)</th></tr></thead>
